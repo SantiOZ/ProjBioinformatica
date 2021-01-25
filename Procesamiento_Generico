@@ -32,7 +32,7 @@ while(is.integer(gn)==FALSE)
     print("No es válido el número de grupos. Recuerda usar números enteros")
   }
 }
-#El siguente paso solo procesa tsvs. Requiere que ya estén orgnaizados previamente. Cada grupo numerado indepentientemente desde 1.
+#El siguente paso solo procesa tsvs. Requiere que ya estén organizados previamente. Cada grupo numerado indepentientemente desde 1.
 while(gn>0){
   tag<-readline("Dos letras que identifiquen este grupo: ")
   c<-readline("Cuantas muestras existen en este grupo?: ")
@@ -91,7 +91,6 @@ resMat
 
 resFrame<-resMat[[1]]
 
-setwd("C:/Users/angel/Documents/Bioinformatica/AR")
 
 ##PCA y plot densities
 
