@@ -1,0 +1,211 @@
+#Incializar librerias (Checar si usamos todos las mismas y cuales no son utilizadas
+library (DESeq2)
+library(refGenome)
+library(tximport)
+library(stringr)
+library(gplots)
+library(ActivePathways)
+library(rtracklayer)
+library(dplyr)
+library(tibble)
+library(scatterplot3d)
+library(RColorBrewer)
+library(BiocManager)
+library(limma)
+library(dplyr)
+library("readxl")
+setwd("C:/Users/angel/Documents/Bioinformatica/AR/tsvs")
+LU1<-read.table(file="LU1.tsv", sep = "\t", header=TRUE)
+LU2<-read.table(file="LU2.tsv", sep = "\t", header=TRUE)
+LU3<-read.table(file="LU3.tsv", sep = "\t", header=TRUE)
+LU4<-read.table(file="LU4.tsv", sep = "\t", header=TRUE)
+LU5<-read.table(file="LU5.tsv", sep = "\t", header=TRUE)
+LU6<-read.table(file="LU6.tsv", sep = "\t", header=TRUE)
+LU7<-read.table(file="LU7.tsv", sep = "\t", header=TRUE)
+LU8<-read.table(file="LU8.tsv", sep = "\t", header=TRUE)
+LU9<-read.table(file="LU9.tsv", sep = "\t", header=TRUE)
+
+PC1<-read.table(file="SA21.tsv", sep = "\t", header=TRUE)
+PC2<-read.table(file="SA22.tsv", sep = "\t", header=TRUE)
+PC3<-read.table(file="SA23.tsv", sep = "\t", header=TRUE)
+PC4<-read.table(file="SA24.tsv", sep = "\t", header=TRUE)
+PC5<-read.table(file="SA25.tsv", sep = "\t", header=TRUE)
+PC6<-read.table(file="SA26.tsv", sep = "\t", header=TRUE)
+PC7<-read.table(file="SA27.tsv", sep = "\t", header=TRUE)
+PC8<-read.table(file="SA28.tsv", sep = "\t", header=TRUE)
+PC9<-read.table(file="SA29.tsv", sep = "\t", header=TRUE)
+PC10<-read.table(file="SA30.tsv", sep = "\t", header=TRUE)
+PC11<-read.table(file="SA31.tsv", sep = "\t", header=TRUE)
+PC12<-read.table(file="SA32.tsv", sep = "\t", header=TRUE)
+PC13<-read.table(file="SA33.tsv", sep = "\t", header=TRUE)
+PC14<-read.table(file="SA34.tsv", sep = "\t", header=TRUE)
+PC15<-read.table(file="SA35.tsv", sep = "\t", header=TRUE)
+PC16<-read.table(file="SA36.tsv", sep = "\t", header=TRUE)
+PC17<-read.table(file="SA37.tsv", sep = "\t", header=TRUE)
+
+automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
+  # Si no hacemos esta línea, y hay genes con ceros, sale pval/qval como NA
+  # count_mat = count_mat +1
+  
+  #Renglones -> Genes, Columnas -> Replicas
+  resList=list()
+  for (n in 1:length(comparisons)){
+    controls = comparisons[[n]][1]
+    samples = comparisons[[n]][2]
+    samples_classA = colnames(count_mat)[grep(controls, colnames(count_mat))]
+    samples_classB = colnames(count_mat)[grep(samples, colnames(count_mat))]
+    aux_data <- count_mat[,c(samples_classA,samples_classB)]
+    aux_desc <- data.frame(condition=c(rep("treated",length(samples_classA)),rep("untreated",length(samples_classB))), type=rep("paired-end",c(length(samples_classA)+length(samples_classB))))
+    aux_dds <- DESeqDataSetFromMatrix(countData = aux_data, colData = aux_desc, design = ~condition)
+    aux_dds <- DESeq(aux_dds)
+    aux_res <- as.data.frame(results(aux_dds))
+    # ponemos validaciones para que no salgan NAs
+    aux_res$log2FoldChange = sapply(aux_res$log2FoldChange, function(x) ifelse(is.na(x), 0, x))
+    aux_res$pvalue = sapply(aux_res$pvalue, function(x) ifelse(is.na(x), 1, x))
+    aux_res$padj = sapply(aux_res$padj, function(x) ifelse(is.na(x), 1, x))
+    
+    resList[[paste(controls,"_",samples,sep="")]] = cbind(aux_res, counts(aux_dds, normalized=T))
+    # colnames(resList[[paste(controls,"_",samples,sep="")]]) = c("baseMean","log2FoldChange","lfcSE","stat", "pvalue", "padj", paste(controls[n],"_1",sep=""), paste(controls[n],"_2",sep=""), paste(samples[n],"_1",sep=""), paste(samples[n],"_2",sep=""))	
+    colnames(resList[[paste(controls,"_",samples,sep="")]]) = c("baseMean","log2FoldChange","lfcSE","stat", "pvalue", "padj", samples_classA, samples_classB)	
+  }
+  return(resList)
+}
+
+count_mat <- cbind(LU1$est_counts, LU2$est_counts, LU3$est_counts, LU4$est_counts, LU5$est_counts,LU6$est_counts,LU7$est_counts,LU8$est_counts,LU9$est_counts,  PC1$est_counts, PC2$est_counts, PC3$est_counts, PC4$est_counts, PC5$est_counts, PC6$est_counts, PC7$est_counts, PC8$est_counts, PC9$est_counts,PC10$est_counts,PC11$est_counts,PC12$est_counts,PC13$est_counts,PC14$est_counts,PC15$est_counts,PC16$est_counts,PC17$est_counts )
+rownames(count_mat) <- LU1$target_id
+colnames(count_mat) <- c("LU_1", "LU_2","LU_3", "LU_4","LU_5","LU_6","LU_7","LU_8","LU_9","PC_1","PC_2","PC_3","PC_4","PC_5","PC_6","PC_7","PC_8","PC_9","PC_10","PC_11","PC_12","PC_13","PC_14","PC_15","PC_16","PC_17")
+count_mat1 <- count_mat + 1
+count_mat1 <- round(count_mat1)
+seleccion <- count_mat1<=0
+seleccion
+count_mat1[seleccion]
+a<- count_mat1[seleccion]
+comparisons <- list(c("LU","PC"))
+comparisons
+resMat <- automatedDESeq2(count_mat1, comparisons)
+resMat
+
+resFrame<-resMat[[1]]
+
+setwd("C:/Users/angel/Documents/Bioinformatica/AR")
+
+##PCA y plot densities
+
+tpm_aux<-cbind(LU1$tpm, LU2$tpm, LU3$tpm, LU4$tpm, LU5$tpm,LU6$tpm,LU7$tpm,LU8$tpm,LU9$tpm,  PC1$tpm, PC2$tpm, PC3$tpm, PC4$tpm, PC5$tpm, PC6$tpm, PC7$tpm, PC8$tpm, PC9$tpm,PC10$tpm,PC11$tpm,PC12$tpm,PC13$tpm,PC14$tpm,PC15$tpm,PC16$tpm,PC17$tpm)
+colnames(tpm_aux) <- c("LU_1", "LU_2","LU_3", "LU_4","LU_5","LU_6","LU_7","LU_8","LU_9","PC_1","PC_2","PC_3","PC_4","PC_5","PC_6","PC_7","PC_8","PC_9","PC_10","PC_11","PC_12","PC_13","PC_14","PC_15","PC_16","PC_17")
+rownames(tpm_aux)<-LU1$target_id
+tpm_adj<-tpm_aux+1
+expressed_tpm_log2 = log2(empty_file(tpm_adj,2))
+tpmnorm<-normalizeQuantiles(expressed_tpm_log2)
+plot.densities(expressed_tpm_log2, main = 'Lupus pre qn (tpm)', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+plot.densities(tpmnorm, main = 'Lupus post qn (tpm)', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+
+
+rpkm<-read_excel("lupusRPKM.xlsx",sheet=1)
+rpkmdf<-as.data.frame(rpkm[c(4,8,10,12,13,15,22,25,27,3,5,16,17,18,19,21,23,36,37,38,39,48,49,53,54,55)])
+colnames(rpkmdf) <- c("LU_1", "LU_2","LU_3", "LU_4","LU_5","LU_6","LU_7","LU_8","LU_9","PC_1","PC_2","PC_3","PC_4","PC_5","PC_6","PC_7","PC_8","PC_9","PC_10","PC_11","PC_12","PC_13","PC_14","PC_15","PC_16","PC_17")
+rpkm_adj<-rpkmdf+1
+expressed_rpkm_log2 = log2(empty_file(rpkm_adj,2))
+rpkmnorm<- normalizeQuantiles(expressed_rpkm_log2)
+plot.densities(expressed_rpkm_log2, main = 'Lupus pre qn (rpkm)', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+plot.densities(rpkmnorm, main = 'Lupus post qn (rpkm)', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+
+
+#finding  with names from index
+human_index<- rtracklayer::import('gencode.v30.chr_patch_hapl_scaff.annotation.gtf.gz')
+human_df=as.data.frame(human_index)
+gene_pos<-match(rownames(tpmnorm),human_df$transcript_id)
+gene_name<-human_df$gene_name[gene_pos]
+tpmnorm_name<-cbind(tpmnorm)
+tpmnorm_name<-as.data.frame(tpmnorm_name)
+tpmnorm_name$gene_name=gene_name
+rpk_pos<-match(rownames(rpkmnorm),rownames(rpkm))
+rpkm_name<-rpkm$ID.1[rpk_pos]
+rpkmnorm_name<-cbind(rpkm_name,rpkmnorm)
+#hay repetidos en rpkm. tal vez estaria bien sacar proemdios y ordenar asi
+
+
+#matching names between tpm and fpkm
+tpm_avg<-rowMeans(tpmnorm_name[,1:26])
+order_tpm<-tpmnorm_name[order(tpm_avg,decreasing=TRUE),]
+order_tpm<-distinct(order_tpm,order_tpm$gene_name,.keep_all=TRUE)
+tmad_filt <- apply(order_tpm[,2:25], 1, mad) 
+fin_tpm<-order_tpm[order(tmad_filt, decreasing = T),]
+
+#hay repetidos en rpkm. tal vez estaria bien sacar proemdios y ordenar asi. eliminar
+rpkm_avg<-rowMeans(rpkmnorm_name[,2:27])
+order_rpkm<-rpkmnorm_name[order(rpkm_avg,decreasing=TRUE),]
+order_rpkm<-distinct(order_rpkm,order_rpkm$rpkm_name,.keep_all=TRUE)
+#if deleted change the next line to rpkmnrom_name
+
+#graficando independientemente
+rmad_filt <- apply(order_rpkm[,3:26], 1, mad) 
+fin_rpkm<-order_rpkm[order(rmad_filt, decreasing = T),]
+final_rpkm<-fin_rpkm[1:2000,3:27]
+#################################
+
+#graficando dependeinte a tpm----------------------
+rpkm_pos<-match(fin_tpm$gene_name,fin_rpkm$rpkm_name)
+#95 genes identificados en el top 1000 de tpm no existen en los gene names de rpkm
+matched_rpkm<-fin_rpkm[rpkm_pos,2:27]
+
+#eliminar null matches y la columna LU1
+final_rpkm<-matched_rpkm[rowSums(is.na(matched_rpkm)) != ncol(matched_rpkm),2:26]
+final_rpkm<-final_rpkm[1:1000,1:24]
+final_tpm<-fin_tpm[rowSums(is.na(matched_rpkm)) != ncol(matched_rpkm),2:26]
+
+final_tpm<-fin_tpm[1:2000,2:26]
+
+
+#plotting PCA
+
+tpca_preComBat <- prcomp(final_tpm)
+
+color_vector = c(rep(1, times = length(grep("LU", rownames(tpca_preComBat$rotation)))),
+                 rep(1, times = length(grep("PC", rownames(tpca_preComBat$rotation)))))
+pch_vector =   c(rep(17, times = length(grep("LU", rownames(tpca_preComBat$rotation)))),
+                 rep(19, times = length(grep("PC", rownames(tpca_preComBat$rotation)))))
+pca_lgnd <- c('LU', 'Ctrl')
+
+plot(tpca_preComBat$rotation[,1], tpca_preComBat$rotation[,2], col=color_vector, pch=pch_vector, cex = 1, xlab=paste("PCA2: ", round(summary(tpca_preComBat)$importance[2,2]*100,1),"%", sep=""),ylab=paste("PCA1: ", round(summary(tpca_preComBat)$importance[2,1]*100,1),"%",sep=""), main = "Kallisto: PreCombat PC1 vs PC2")
+legend("topright", legend=pca_lgnd, col=c(1,1),pch = c(17,19), pt.cex = 1, cex=0.75, horiz = F)
+text(tpca_preComBat$rotation[,1], tpca_preComBat$rotation[,2], labels = row.names(tpca_preComBat$rotation), pos = 4,cex=0.5)
+
+
+plot(tpca_preComBat$rotation[,1], tpca_preComBat$rotation[,3], col=color_vector, pch=pch_vector, cex = 1, xlab="PC1",ylab="PC3", main = "tpm selected genes: PC1 vs PC3")
+legend("topright", legend=pca_lgnd,  col=c(1,1),pch = c(17,19), pt.cex = 1, cex=0.75)
+text(tpca_preComBat$rotation[,1], tpca_preComBat$rotation[,3], labels = row.names(tpca_preComBat$rotation), pos = 4,cex=0.5)
+
+
+plot(tpca_preComBat$rotation[,2], tpca_preComBat$rotation[,3], col=color_vector, pch=pch_vector, cex = 1, xlab="PC2",ylab="PC3", main = "tpm selected genes: PC2 vs PC3")
+legend("topright", legend=pca_lgnd, col=c(1,1),pch = c(17,19), pt.cex=1, cex=0.75, horiz = F)
+text(tpca_preComBat$rotation[,2], tpca_preComBat$rotation[,3], labels = row.names(tpca_preComBat$rotation), pos = 4,cex=0.5)
+
+
+
+pca_preComBat <- prcomp(final_rpkm[1:2000,])
+
+color_vector = c(rep(1, times = length(grep("LU", rownames(pca_preComBat$rotation)))),
+                 rep(1, times = length(grep("PC", rownames(pca_preComBat$rotation)))))
+pch_vector =   c(rep(17, times = length(grep("LU", rownames(pca_preComBat$rotation)))),
+                 rep(19, times = length(grep("PC", rownames(pca_preComBat$rotation)))))
+pca_lgnd <- c('LU', 'Ctrl')
+
+plot(pca_preComBat$rotation[,1], pca_preComBat$rotation[,2], col=color_vector, pch=pch_vector, cex = 1, xlab=paste("PCA2: ", round(summary(pca_preComBat)$importance[2,2]*100,1),"%", sep=""),ylab=paste("PCA1: ", round(summary(pca_preComBat)$importance[2,1]*100,1),"%",sep=""), main = "Autores:PreCombat PC1 vs PC2",)
+legend("topright", legend=pca_lgnd, col=c(1,1),pch = c(17,19), pt.cex = 1, cex=0.75, horiz = F)
+text(pca_preComBat$rotation[,1], pca_preComBat$rotation[,2], labels = row.names(pca_preComBat$rotation), pos = 4,cex=0.5)
+
+
+plot(pca_preComBat$rotation[,1], pca_preComBat$rotation[,3], col=color_vector, pch=pch_vector, cex = 1, xlab="PC1",ylab="PC3", main = "rpkm selected genes: PC1 vs PC3")
+legend("topright", legend=pca_lgnd,  col=c(1,1),pch = c(17,19), pt.cex = 1, cex=0.75)
+text(pca_preComBat$rotation[,1], pca_preComBat$rotation[,3], labels = row.names(pca_preComBat$rotation), pos = 4,cex=0.5)
+
+
+plot(pca_preComBat$rotation[,2], pca_preComBat$rotation[,3], col=color_vector, pch=pch_vector, cex = 1, xlab="PC2",ylab="PC3", main = "rpkm selected genes: PC2 vs PC3")
+legend("topright", legend=pca_lgnd, col=c(1,1),pch = c(17,19), pt.cex=1, cex=0.75, horiz = F)
+text(pca_preComBat$rotation[,2], pca_preComBat$rotation[,3], labels = row.names(pca_preComBat$rotation), pos = 4,cex=0.5)
+
+
+cor(final_rpkm[1:1000,],final_tpm[1:1000,],method="spearman")
+cor(final_rpkm[1:1000,],final_tpm[1:1000,],method="pearson")
+
