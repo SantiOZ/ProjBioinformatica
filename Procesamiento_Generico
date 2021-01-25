@@ -93,10 +93,22 @@ seleccion <- count_mat1<=0
 seleccion
 count_mat1[seleccion]
 a<- count_mat1[seleccion]
-comparisons <- list(c(#####Los grupos que se iran a comparar e.g. LU,PC))
-comparisons
+### Pedir el número de comparaciones que se quiere hacer. Posiblemente agregar chequeo de valores para los datos ingresados
+par<-readline("Cuantas parejas de datos quieres comparar?:  ")
+par<-as.integer(unlist(strsplit(par, ",")))
+parejas<-vector()
+### Agregar las parejas que se busca comparar. No es solo copiar y pegar la lista de varnames porque hay veces en donde
+### muestras de dos enfermedades usan la misma serie de controles
+for(i in 1:par){
+  par1<-readline("Letras que identifiquen grupo 1 de la comparación:")
+  par2<-readline("Letras que identifiquen grupo 2 de la comparación:")
+  parejas<-append(parejas,par1)
+  parejas<-append(parejas,par2)
+  
+  
+}
+comparisons<-list(c(parejas))
 resMat <- automatedDESeq2(count_mat1, comparisons)
-resMat
 
 resFrame<-resMat[[1]]
 
