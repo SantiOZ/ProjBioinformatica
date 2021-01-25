@@ -33,18 +33,22 @@ while(is.integer(gn)==FALSE)
   }
 }
 #El siguente paso solo procesa tsvs. Requiere que ya estén organizados previamente. Cada grupo numerado indepentientemente desde 1.
+varnames<-vector()
 while(gn>0){
   tag<-readline("Dos letras que identifiquen este grupo: ")
   c<-readline("Cuantas muestras existen en este grupo?: ")
+  i=1
   d<-as.integer(unlist(strsplit(c, ",")))
-  while(d>0){
-    varname<-paste(tag,toString(d),sep="")
+  while(i<=d){
+    varname<-paste(tag,i,sep="")
     fullname<-paste(varname,".tsv",sep="")
     assign(varname,read.table(file=fullname, sep = "\t", header=TRUE))
-    d<-d-1
+    varnames<-append(varnames,varname)
+    i<-i+1
   }
   gn<-gn-1
 }
+
 
 
 automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
