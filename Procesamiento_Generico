@@ -14,34 +14,38 @@ library(BiocManager)
 library(limma)
 library(dplyr)
 library("readxl")
-setwd("C:/Users/angel/Documents/Bioinformatica/AR/tsvs")
-LU1<-read.table(file="LU1.tsv", sep = "\t", header=TRUE)
-LU2<-read.table(file="LU2.tsv", sep = "\t", header=TRUE)
-LU3<-read.table(file="LU3.tsv", sep = "\t", header=TRUE)
-LU4<-read.table(file="LU4.tsv", sep = "\t", header=TRUE)
-LU5<-read.table(file="LU5.tsv", sep = "\t", header=TRUE)
-LU6<-read.table(file="LU6.tsv", sep = "\t", header=TRUE)
-LU7<-read.table(file="LU7.tsv", sep = "\t", header=TRUE)
-LU8<-read.table(file="LU8.tsv", sep = "\t", header=TRUE)
-LU9<-read.table(file="LU9.tsv", sep = "\t", header=TRUE)
 
-PC1<-read.table(file="SA21.tsv", sep = "\t", header=TRUE)
-PC2<-read.table(file="SA22.tsv", sep = "\t", header=TRUE)
-PC3<-read.table(file="SA23.tsv", sep = "\t", header=TRUE)
-PC4<-read.table(file="SA24.tsv", sep = "\t", header=TRUE)
-PC5<-read.table(file="SA25.tsv", sep = "\t", header=TRUE)
-PC6<-read.table(file="SA26.tsv", sep = "\t", header=TRUE)
-PC7<-read.table(file="SA27.tsv", sep = "\t", header=TRUE)
-PC8<-read.table(file="SA28.tsv", sep = "\t", header=TRUE)
-PC9<-read.table(file="SA29.tsv", sep = "\t", header=TRUE)
-PC10<-read.table(file="SA30.tsv", sep = "\t", header=TRUE)
-PC11<-read.table(file="SA31.tsv", sep = "\t", header=TRUE)
-PC12<-read.table(file="SA32.tsv", sep = "\t", header=TRUE)
-PC13<-read.table(file="SA33.tsv", sep = "\t", header=TRUE)
-PC14<-read.table(file="SA34.tsv", sep = "\t", header=TRUE)
-PC15<-read.table(file="SA35.tsv", sep = "\t", header=TRUE)
-PC16<-read.table(file="SA36.tsv", sep = "\t", header=TRUE)
-PC17<-read.table(file="SA37.tsv", sep = "\t", header=TRUE)
+#Pide el directorio en donde se encuentran los tsvs que planeas usar.
+#tal vez agregar funcion de elegir si los datos vienen de kallisto o de otra fuente y hacer paths diferentes para cada uno
+
+where<-readline("Copia y pega la dirección de los tsvs en tu sistema:  ")
+setwd(where)
+
+
+#pide el número de grupos qeu buscas analizar. Lo usual sería dos. Uno para enfermos y control
+gn=NA
+while(is.integer(gn)==FALSE)
+{
+  gn<-readline("Cuantos grupos buscar analizar?: ")
+  gn<-as.integer(unlist(strsplit(gn, ",")))
+  if(is.integer(gn)==FALSE){
+    print("No es válido el número de grupos. Recuerda usar números enteros")
+  }
+}
+#El siguente paso solo procesa tsvs. Requiere que ya estén orgnaizados previamente. Cada grupo numerado indepentientemente desde 1.
+while(gn>0){
+  tag<-readline("Dos letras que identifiquen este grupo: ")
+  c<-readline("Cuantas muestras existen en este grupo?: ")
+  d<-as.integer(unlist(strsplit(c, ",")))
+  while(d>0){
+    varname<-paste(tag,toString(d),sep="")
+    fullname<-paste(varname,".tsv",sep="")
+    assign(varname,read.table(file=fullname, sep = "\t", header=TRUE))
+    d<-d-1
+  }
+  gn<-gn-1
+}
+
 
 automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
   # Si no hacemos esta línea, y hay genes con ceros, sale pval/qval como NA
