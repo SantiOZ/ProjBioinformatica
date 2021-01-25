@@ -33,18 +33,22 @@ while(is.integer(gn)==FALSE)
   }
 }
 #El siguente paso solo procesa tsvs. Requiere que ya estén organizados previamente. Cada grupo numerado indepentientemente desde 1.
+varnames<-vector()
 while(gn>0){
   tag<-readline("Dos letras que identifiquen este grupo: ")
   c<-readline("Cuantas muestras existen en este grupo?: ")
+  i=1
   d<-as.integer(unlist(strsplit(c, ",")))
-  while(d>0){
-    varname<-paste(tag,toString(d),sep="")
+  while(i<=d){
+    varname<-paste(tag,i,sep="")
     fullname<-paste(varname,".tsv",sep="")
     assign(varname,read.table(file=fullname, sep = "\t", header=TRUE))
-    d<-d-1
+    varnames<-append(varnames,varname)
+    i<-i+1
   }
   gn<-gn-1
 }
+
 
 
 automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
@@ -75,19 +79,36 @@ automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
   return(resList)
 }
 
-count_mat <- cbind(LU1$est_counts, LU2$est_counts, LU3$est_counts, LU4$est_counts, LU5$est_counts,LU6$est_counts,LU7$est_counts,LU8$est_counts,LU9$est_counts,  PC1$est_counts, PC2$est_counts, PC3$est_counts, PC4$est_counts, PC5$est_counts, PC6$est_counts, PC7$est_counts, PC8$est_counts, PC9$est_counts,PC10$est_counts,PC11$est_counts,PC12$est_counts,PC13$est_counts,PC14$est_counts,PC15$est_counts,PC16$est_counts,PC17$est_counts )
-rownames(count_mat) <- LU1$target_id
-colnames(count_mat) <- c("LU_1", "LU_2","LU_3", "LU_4","LU_5","LU_6","LU_7","LU_8","LU_9","PC_1","PC_2","PC_3","PC_4","PC_5","PC_6","PC_7","PC_8","PC_9","PC_10","PC_11","PC_12","PC_13","PC_14","PC_15","PC_16","PC_17")
+####Arreglar esta parte del codigo para que sea generica. usando los datos recuperados en la pedida de muestras
+count_mat<-data.frame(eval(as.name(varnames[1]))$est_counts)
+
+for (i in 2:length(varnames)){
+  count_mat<-cbind(count_mat,eval(as.name(varnames[i]))$est_counts)
+}
+rownames(count_mat)<-eval(as.name(varnames[1]))$target_id
+colnames(count_mat)<-c(varnames)
 count_mat1 <- count_mat + 1
 count_mat1 <- round(count_mat1)
 seleccion <- count_mat1<=0
 seleccion
 count_mat1[seleccion]
 a<- count_mat1[seleccion]
-comparisons <- list(c("LU","PC"))
-comparisons
+### Pedir el número de comparaciones que se quiere hacer. Posiblemente agregar chequeo de valores para los datos ingresados
+par<-readline("Cuantas parejas de datos quieres comparar?:  ")
+par<-as.integer(unlist(strsplit(par, ",")))
+parejas<-vector()
+### Agregar las parejas que se busca comparar. No es solo copiar y pegar la lista de varnames porque hay veces en donde
+### muestras de dos enfermedades usan la misma serie de controles
+for(i in 1:par){
+  par1<-readline("Letras que identifiquen grupo 1 de la comparación:")
+  par2<-readline("Letras que identifiquen grupo 2 de la comparación:")
+  parejas<-append(parejas,par1)
+  parejas<-append(parejas,par2)
+  
+  
+}
+comparisons<-list(c(parejas))
 resMat <- automatedDESeq2(count_mat1, comparisons)
-resMat
 
 resFrame<-resMat[[1]]
 
