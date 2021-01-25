@@ -80,9 +80,13 @@ automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
 }
 
 ####Arreglar esta parte del codigo para que sea generica. usando los datos recuperados en la pedida de muestras
-count_mat <- cbind(######Columna estcounts de cada muestra )
-rownames(count_mat) <- LU1$target_id
-colnames(count_mat) <- c(####string de cada columna. hay un dash entre tag y numero? mantener eso podria ser importante)
+count_mat<-data.frame(eval(as.name(varnames[1]))$est_counts)
+
+for (i in 2:length(varnames)){
+  count_mat<-cbind(count_mat,eval(as.name(varnames[i]))$est_counts)
+}
+rownames(count_mat)<-eval(as.name(varnames[1]))$target_id
+colnames(count_mat)<-c(varnames)
 count_mat1 <- count_mat + 1
 count_mat1 <- round(count_mat1)
 seleccion <- count_mat1<=0
