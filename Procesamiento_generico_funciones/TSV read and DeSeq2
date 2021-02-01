@@ -1,0 +1,93 @@
+###Output sería:Res_Frame, tags
+###requiere inicializacion de varias librerias. Hacer eso dentro de la funcion?
+
+where<-readline("Copia y pega la dirección de los tsvs en tu sistema:  ")
+setwd(where)
+
+
+#pide el número de grupos qeu buscas analizar. Lo usual sería dos. Uno para enfermos y control
+gn=NA
+while(is.integer(gn)==FALSE)
+{
+  gn<-readline("Cuantos grupos buscar analizar?: ")
+  gn<-as.integer(unlist(gn))
+  if(is.integer(gn)==FALSE){
+    print("No es válido el número de grupos. Recuerda usar números enteros")
+  }
+}
+
+varnames<-vector()
+while(gn>0){
+  tag<-readline("Dos letras que identifiquen este grupo: ")
+  c<-readline("Cuantas muestras existen en este grupo?: ")
+  i=1
+  d<-as.integer(unlist(c))
+  while(i<=d){
+    varname<-paste(tag,i,sep="")
+    fullname<-paste(varname,".tsv",sep="")
+    assign(varname,read.table(file=fullname, sep = "\t", header=TRUE))
+    varnames<-append(varnames,varname)
+    i<-i+1
+  }
+  gn<-gn-1
+}
+
+
+automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
+  # Si no hacemos esta línea, y hay genes con ceros, sale pval/qval como NA
+  # count_mat = count_mat +1
+  
+  #Renglones -> Genes, Columnas -> Replicas
+  resList=list()
+  for (n in 1:length(comparisons)){
+    controls = comparisons[[n]][1]
+    samples = comparisons[[n]][2]
+    samples_classA = colnames(count_mat)[grep(controls, colnames(count_mat))]
+    samples_classB = colnames(count_mat)[grep(samples, colnames(count_mat))]
+    aux_data <- count_mat[,c(samples_classA,samples_classB)]
+    aux_desc <- data.frame(condition=c(rep("treated",length(samples_classA)),rep("untreated",length(samples_classB))), type=rep("paired-end",c(length(samples_classA)+length(samples_classB))))
+    aux_dds <- DESeqDataSetFromMatrix(countData = aux_data, colData = aux_desc, design = ~condition)
+    aux_dds <- DESeq(aux_dds)
+    aux_res <- as.data.frame(results(aux_dds))
+    # ponemos validaciones para que no salgan NAs
+    aux_res$log2FoldChange = sapply(aux_res$log2FoldChange, function(x) ifelse(is.na(x), 0, x))
+    aux_res$pvalue = sapply(aux_res$pvalue, function(x) ifelse(is.na(x), 1, x))
+    aux_res$padj = sapply(aux_res$padj, function(x) ifelse(is.na(x), 1, x))
+    
+    resList[[paste(controls,"_",samples,sep="")]] = cbind(aux_res, counts(aux_dds, normalized=T))
+    # colnames(resList[[paste(controls,"_",samples,sep="")]]) = c("baseMean","log2FoldChange","lfcSE","stat", "pvalue", "padj", paste(controls[n],"_1",sep=""), paste(controls[n],"_2",sep=""), paste(samples[n],"_1",sep=""), paste(samples[n],"_2",sep=""))	
+    colnames(resList[[paste(controls,"_",samples,sep="")]]) = c("baseMean","log2FoldChange","lfcSE","stat", "pvalue", "padj", samples_classA, samples_classB)	
+  }
+  return(resList)
+}
+
+count_mat<-data.frame(eval(as.name(varnames[1]))$est_counts)
+
+for (i in 2:length(varnames)){
+  count_mat<-cbind(count_mat,eval(as.name(varnames[i]))$est_counts)
+  i
+}
+rownames(count_mat)<-eval(as.name(varnames[1]))$target_id
+colnames(count_mat)<-c(varnames)
+count_mat1 <- count_mat + 1
+count_mat1 <- round(count_mat1)
+seleccion <- count_mat1<=0
+seleccion
+count_mat1[seleccion]
+a<- count_mat1[seleccion]
+
+par<-readline("Cuantas parejas de datos quieres comparar?:  ")
+par<-as.integer(unlist(strsplit(par, ",")))
+parejas<-vector()
+for(i in 1:par){
+  par1<-readline("Letras que identifiquen grupo 1 de la comparación:")
+  par2<-readline("Letras que identifiquen grupo 2 de la comparación:")
+  parejas<-append(parejas,par1)
+  parejas<-append(parejas,par2)
+  
+  
+}
+comparisons<-list(c(parejas))
+resMat <- automatedDESeq2(count_mat1, comparisons)
+
+resFrame<-resMat[[1]]
