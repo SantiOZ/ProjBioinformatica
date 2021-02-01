@@ -1,0 +1,37 @@
+
+#####graficar PCA de autores
+#####estas lineas son para usar los datos 
+auth_filt <- apply(authnorm, 1, mad) 
+fin_auth<-authnorm[order(auth_filt, decreasing = T),]
+ind_auth<-fin_auth[1:2000,]
+
+pca_preComBat <- prcomp(ind_auth)
+
+fn<-readline("Cuantos grupos buscar analizar?: ")
+fn<-as.integer(unlist(fn))
+
+
+color_vector<-vector()
+pch_vector<-vector()
+i=0
+while (i<fn){
+  color<-(i%/%2)+1
+  print(i)
+  print(color)
+  color_vector<-append(color_vector,rep(color, times = length(grep(tags[i+1], rownames(pca_preComBat$rotation)))))
+  if (i%%2==0){
+    pch_vector <-append(pch_vector,rep(17, times = length(grep(tags[i+1], rownames(pca_preComBat$rotation)))))  
+  }else{
+    pch_vector <-append(pch_vector,rep(19, times = length(grep(tags[i+1], rownames(pca_preComBat$rotation)))))  
+    
+  }
+  
+  i=i+1
+}
+
+pca_lgnd <- tags
+
+
+plot(pca_preComBat$rotation[,1], pca_preComBat$rotation[,2], col=color_vector, pch=pch_vector, cex = 1, xlab=paste("PCA2: ", round(summary(pca_preComBat)$importance[2,2]*100,1),"%", sep=""),ylab=paste("PCA1: ", round(summary(pca_preComBat)$importance[2,1]*100,1),"%",sep=""), main = "Autores: Pre Combat PC1 vs PC2")
+legend("topright", legend=pca_lgnd, col=c(1,1),pch = c(17,19), pt.cex = 1, cex=0.75, horiz = F)
+text(pca_preComBat$rotation[,1], pca_preComBat$rotation[,2], labels = row.names(pca_preComBat$rotation), pos = 4,cex=0.5)
