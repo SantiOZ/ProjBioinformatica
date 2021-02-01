@@ -1,0 +1,10 @@
+####NORMALIZAR DOCUMENTO DE AUTORES
+####solo sirve si son datos crudos
+authdf_adj<-order_auth+1
+expressed_auth_log2 = log2(empty_file(authdf_adj,2))
+authnorm<- normalizeQuantiles(expressed_auth_log2)
+
+plot.densities(expressed_auth_log2, main = 'Density pre qn', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+plot.densities(authnorm, main = 'Density post qn', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+
+
