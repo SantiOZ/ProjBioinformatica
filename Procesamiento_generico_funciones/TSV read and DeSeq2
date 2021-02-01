@@ -25,7 +25,9 @@ while(gn>0){
   while(i<=d){
     varname<-paste(tag,i,sep="")
     fullname<-paste(varname,".tsv",sep="")
+    ###################################
     assign(varname,read.table(file=fullname, sep = "\t", header=TRUE))
+    ####################################
     varnames<-append(varnames,varname)
     i<-i+1
   }
@@ -62,11 +64,12 @@ automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
 }
 
 count_mat<-data.frame(eval(as.name(varnames[1]))$est_counts)
-
+######################################
 for (i in 2:length(varnames)){
   count_mat<-cbind(count_mat,eval(as.name(varnames[i]))$est_counts)
   i
 }
+#####################################
 rownames(count_mat)<-eval(as.name(varnames[1]))$target_id
 colnames(count_mat)<-c(varnames)
 count_mat1 <- count_mat + 1
