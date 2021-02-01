@@ -1,0 +1,56 @@
+
+### aqui insertar nombre del documento
+authname<-readline("Proporcione el nombre del documento que busca leer: ")
+auth<-read.table(gzfile(authname),sep="\t",header=TRUE)
+#preguntar cuantos grupos hay de interes en esta
+gn=NA
+while(is.integer(gn)==FALSE)
+{
+  gn<-readline("Cuantos grupos buscar analizar?: ")
+  gn<-as.integer(unlist(strsplit(gn, ",")))
+  if(is.integer(gn)==FALSE){
+    print("No es válido el número de grupos. Recuerda usar números enteros")
+  }
+}
+
+varnames<-vector()
+tags<-vector()
+authdf<-data.frame(1:nrow(auth))
+while(gn>0){
+  #preguntar cuales son los tags que deseamos para cada grupo
+  tag<-readline("Dos letras que identificaran a este grupo: ")
+  tags<-append(tags,tag)
+  #preguntar cuantos son de cada grupo
+  c<-readline("Cuantas muestras existen en este grupo?: ")
+  i=1
+  d<-as.integer(unlist(strsplit(c, ",")))
+  while(i<=d){
+    varname<-paste(tag,i,sep="")
+    varnames<-append(varnames,varname)
+    i<-i+1
+  }
+  #preguntar que columnas son en el documento
+  
+  readcolumn<-readline("Proporcione las columnas que contienen este grupo (sin espacios y delimitados por comas: ")
+  tablecol<-as.integer(unlist(strsplit(readcolumn, ",")))
+  authdf<-cbind(authdf,auth[tablecol])
+  gn<-gn-1
+}
+#eliminar columa redundante de formacion de df
+authdf<-authdf[2:ncol(authdf)]
+#agregar nombres a columnas con tags establecidos
+colnames(authdf) <- c(varnames)
+
+#por si se quiere agregar la columna de nombres de genes al dataframe de datos
+genecol<-readline("Proporcione el # de columna en la cual vienen los nombres de genes:  ")
+genescol<-as.integer(unlist(genecol))
+
+finauthdf<-cbind(auth[genescol],authdf)
+#Por si quieres checar si hay datos repetidos del mismo gen se podría correr la siguente linea.
+#dups <-finauthdf[duplicated(finauthdf$Gene)|duplicated(finauthdf$Gene, fromLast=TRUE),]
+
+##elimiar genes repetidos, se elimina el que tenga el numero menor de conteos
+auth_avg<-rowMeans(finauthdf[,2:length(finauthdf)])
+order_auth<-finauthdf[order(auth_avg,decreasing=TRUE),]
+order_auth<-distinct(order_auth,order_auth$Gene,.keep_all=TRUE)
+order_auth<-order_auth[,2:(length(order_auth)-1)]
