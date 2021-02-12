@@ -1,5 +1,6 @@
 
 #####graficar PCA de autores
+####cambio innecesario
 #####estas lineas son para usar los datos 
 auth_filt <- apply(authnorm, 1, mad) 
 fin_auth<-authnorm[order(auth_filt, decreasing = T),]
