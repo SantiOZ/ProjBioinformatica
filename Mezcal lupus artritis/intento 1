@@ -1,4 +1,80 @@
-asdasd
-introducimos datos del paper
-loz acomoadmos
-etc
+{
+  library(tximport)
+  library(DESeq2)
+  library(doBy)
+  library(RSQLite)
+  library(gplots)
+  library(ActivePathways)
+  library(rtracklayer)
+  library(dplyr)
+  library(tibble)
+  library(scatterplot3d)
+  library(limma)
+  library(sva)
+  library(refGenome)
+}
+
+#Nomenclatura
+E##_# Enfermo
+S##_# Control
+#L#_# Lupus
+#C#_# Crohn
+#M#_# Esclerosis
+#A#_# Artritis
+#D#_# Diabetes
+##1_# primer paper de esa #enfermedad
+##2_# segundo paper de esa #enfermedad
+
+Ejemplo:
+EL1_1
+
+
+#####################################################################################################################1
+#####################################################################################################################1
+#####################################################################################################################1
+#----------------------------------------------------------------PCA y comBat de los datos de los autores------------------------------------------------------
+
+{
+#Ojo, poner tu dirección
+#gz_paper <- file('C:/Users/aleja/Documents/Bioinformatics team/Analisis en R/Nuevo 2021 Cheng/GSE162828_gene_expression_ALEX.txt', 'rt')
+#gz_paper <- file('C:/Users/joseluis/Documents/Bioinformatics team/Analisis en R/Nuevo 2021 Cheng/GSE162828_gene_expression_JOSElUIS.txt', 'rt')
+ftp_paper <- read.table(gz_paper,header=T, sep = '\t')
+#Nombres originales del archivo
+libs <- c('s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10')
+#'09769409xu_count', '12112222huang_count', '12114794zhang_count', '12192409lu_count', '12213331ye_count', 'X1907155_count', 'X1907156_count', 'X1907225_count', 'X1907226_count', 'X1907227_count'
+etiq <- c('S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10')
+paper_df <- ftp_paper[,libs]
+colnames(paper_df) <- etiq
+paper_df <- log2(empty_row(paper_df + 1,2))
+#Hacer normalización por cuantiles
+paper_df<- normalizeQuantiles(paper_df)
+plotDensities(paper_df, legend = "topright")
+plot.densities(paper_df)
+#plotDensities(paper_df)
+
+paper_mad <- apply(paper_df, 1, mad)
+paper_pca <- prcomp(paper_df[order(paper_mad, decreasing = T)[0:1000],])
+
+
+#jpeg(file="Paper PreCombat 1 v.s. 2.jpg",width = 500, height = 500)
+plot(paper_pca$rotation[,1], paper_pca$rotation[,2], col=c(1,2,3,4,5,6,7,8,9,10), pch=c(15,15,15,15,15,17,17,17,17,17), cex = 1, xlab="PC1",ylab="PC2", main = "Pre ComBat: PC1 vs PC2")
+#, xlim=range(-0.4,0.4), ylim=range(-0.6,0.8)
+legend("topleft", legend=rownames(paper_pca$rotation), col=c(1,2,3,4,5,6,7,8,9,10),pch = c(15,15,15,15,15,17,17,17,17,17), pt.cex = 1, cex=0.75, horiz = F, ncol = 2)
+#dev.off()
+
+
+paper_mat_batch <- c(1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1)
+paper_modcombat <- model.matrix(~1, data=data.frame(cmb=paper_mat_batch))
+paper_postComBat <- ComBat(dat= paper_df, batch=paper_mat_batch, mod=paper_modcombat, par.prior=TRUE, prior.plots=FALSE)
+
+paper_mad_postcombat <- apply(paper_postComBat, 1, mad)
+paper_pca_postcombat <- prcomp(paper_postComBat[order(paper_mad_postcombat, decreasing = T)[0:1000],])
+
+
+max(paper_postComBat)
+min(paper_postComBat)
+
+#jpeg(file="Paper PostCombat 1 v.s. 2.jpg",width = 500, height = 500)
+plot(paper_pca_postcombat$rotation[,1], paper_pca_postcombat$rotation[,2], col=c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26), pch=c(15,15,15,15,15,15,15,15,17,17,17,17,17,17,17,17,17,19,19,19,19,19,19,19,19,19), cex = 1, xlab="PC1",ylab="PC2", main = "Post ComBat: PC1 vs PC2", xlim=range(-0.4,0.4), ylim=range(-0.6,0.8))
+legend("topleft", legend=rownames(paper_pca_postcombat$rotation), col=c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26),pch = c(15,15,15,15,15,15,15,15,17,17,17,17,17,17,17,17,17,19,19,19,19,19,19,19,19,19), pt.cex = 1, cex=0.75, horiz = F, ncol = 2)
+#dev.off()
