@@ -1,3 +1,11 @@
+###only reads txt.gz files
+###Must have already specified correct working directory
+###Two values of interesest are returned inside of a list. 
+###first one: order_auth is the matrix with all the information. data is already ordered by expression and repeated gene expressions are eliminated
+###second one: tags is a list of names for each sample. can be used later during the pca plotting function
+
+readauth<-function(){
+  
 
 ### aqui insertar nombre del documento
 authname<-readline("Proporcione el nombre del documento que busca leer: ")
@@ -54,3 +62,8 @@ auth_avg<-rowMeans(finauthdf[,2:length(finauthdf)])
 order_auth<-finauthdf[order(auth_avg,decreasing=TRUE),]
 order_auth<-distinct(order_auth,order_auth$Gene,.keep_all=TRUE)
 order_auth<-order_auth[,2:(length(order_auth)-1)]
+
+authlist<-list("order_auth"=order_auth,"tags"=tags)
+return(authlist)
+
+}
