@@ -9,7 +9,14 @@ readauth<-function(){
 
 ### aqui insertar nombre del documento
 authname<-readline("Proporcione el nombre del documento que busca leer: ")
+
+###agregar opcion de lectura para documento diferentes. se requiere cambiar solo el read table o muchas mas cosas????
+
+#xlx
+
+#.txt.gz
 auth<-read.table(gzfile(authname),sep="\t",header=TRUE)
+
 #preguntar cuantos grupos hay de interes en esta
 gn=NA
 while(is.integer(gn)==FALSE)
