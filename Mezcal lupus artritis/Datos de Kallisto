@@ -21,3 +21,105 @@ getNormalizedCounts <- function(count_mat){
   normalized_counts <- counts(aux_dds, normalized=T)
   list(dds=aux_dds, norm_counts=normalized_counts)
 }
+
+library(tximport)
+library(DESeq2)
+library(doBy)
+library(RSQLite)
+library(gplots)
+library(ActivePathways)
+library(rtracklayer)
+library(dplyr)
+library(tibble)
+library(scatterplot3d)
+library(limma)
+library(sva)
+library(refGenome)
+
+
+getNormalizedCounts <- function(count_mat){
+  samples_classA = 1:round(ncol(count_mat)/2)
+  samples_classB = (1:ncol(count_mat))[-samples_classA]
+  aux_data <- count_mat
+  aux_desc <- data.frame(condition=c(rep("treated",length(samples_classA)),rep("untreated",length(samples_classB))), type=rep("paired-end",c(length(samples_classA)+length(samples_classB))))
+  aux_dds <- DESeqDataSetFromMatrix(countData = aux_data, colData = aux_desc, design = ~condition)
+  aux_dds <- DESeq(aux_dds)
+  normalized_counts <- counts(aux_dds, normalized=T)
+  list(dds=aux_dds, norm_counts=normalized_counts)
+}
+
+#Modificar el directorio donde tienes los archivos .tsv de todas las enfermedades
+setwd("D:/Archivos_de_trabajo/Analisis_combinado")
+
+archivos_tsv = list.files(pattern="*.tsv")#Lee todos los archivos que sigan el patron indicado
+abundancias <- list()
+for (i in 1:length(archivos_tsv)) {#Para cada archivo encontrado en abundancias, le aplicara la funcion read.table, ademas de cortar el nombre para quitar ".tsv"
+  if (nchar(archivos_tsv[i])== 7) {
+    abundancias[[i]] <- assign(substr(archivos_tsv[i],1,3),read.table(archivos_tsv[i], sep = "\t", header=TRUE))
+    names(abundancias)[i] <- c(substr(archivos_tsv[i],1,3))
+  } else {
+    abundancias[[i]] <- assign(substr(archivos_tsv[i],1,4),read.table(archivos_tsv[i], sep = "\t", header=TRUE))
+    names(abundancias)[i] <- c(substr(archivos_tsv[i],1,4))
+  }
+}
+
+aux_tpm_S_E <- c()
+for (i in 1:length(abundancias)) { 
+  aux_tpm_S_E <- cbind(aux_tpm_S_E, abundancias[[i]]$tpm)
+}
+rownames(aux_tpm_S_E) <- SA1$target_id
+colnames(aux_tpm_S_E) <- names(abundancias)
+
+#aux_counts_S_E <- c()
+#for (i in 1:length(abundancias)) { 
+  aux_counts_S_E <- cbind(aux_counts_S_E, abundancias[[i]]$est_counts)
+}
+#rownames(aux_counts_S_E) <- SA1$target_id
+#colnames(aux_counts_S_E) <- names(abundancias)
+
+etiq_L <- c( 'EL2_1.tpm', 'EL2_2.tpm', 'EL2_3.tpm', 'EL2_4.tpm', 'EL2_5.tpm', 'SL2_1.tpm', 'SL2_2.tpm', 'SL2_3.tpm', 'SL2_4.tpm', 'SL2_5.tpm')
+etiq_A <- c('EA1', 'EA2', 'EA3', 'EA4', 'EA5', 'SA1', 'SA2', 'SA3', 'SA4', 'SA5', 'SA6', 'SA7', 'SA8', 'SA9', 'SA10')
+
+
+tpm_kallisto_RA <- normalizeQuantiles(log2(aux_tpm_S_E[,etiq_A] + 1))
+lupus_df <- data.frame(SL2_1$target_id, SL2_1$tpm, SL2_2$tpm, SL2_3$tpm, SL2_4$tpm, SL2_5$tpm, EL2_1$tpm, EL2_2$tpm, EL2_3$tpm, EL2_4$tpm, EL2_5$tpm)
+tpm_kallisto_LE <- normalizeQuantiles(log2(lupus_df[,etiq_L] + 1))
+
+tpm_kallisto <- normalizeQuantiles(data.frame(tpm_kallisto_RA, tpm_kallisto_LE))
+kallisto_tpm_genematch <- match(substr(rownames(tpm_kallisto), 1, 15), genes$transcript_id)
+orden_tpm_promedio <- order(apply(tpm_kallisto, 1, mean), decreasing = T)
+tpm_kallisto <- data.frame(gene_name = genes$gene_name[kallisto_tpm_genematch], tpm_kallisto)[orden_tpm_promedio,]
+tpm_kallisto <- tpm_kallisto[!duplicated(tpm_kallisto$gene_name),]
+
+mad_filt_precombat <- apply(tpm_kallisto[,-1], 1, mad)
+pca_tpm_kallisto <- prcomp(tpm_kallisto[order(mad_filt_precombat,decreasing = T)[0:2000],-1])
+
+color_vector = c(rep(1, times = length(grep("EA", rownames(pca_tpm_kallisto$rotation)))),
+                 rep(1, times = length(grep("SA", rownames(pca_tpm_kallisto$rotation)))),
+                 rep(2, times = length(grep("EL2", rownames(pca_tpm_kallisto$rotation)))),
+                 rep(2, times = length(grep("SL2", rownames(pca_tpm_kallisto$rotation))))
+)
+
+pch_vector =   c(rep(15, times = length(grep("EA", rownames(pca_tpm_kallisto$rotation)))),
+                 rep(17, times = length(grep("SA", rownames(pca_tpm_kallisto$rotation)))),
+                 rep(15, times = length(grep("EL2", rownames(pca_tpm_kallisto$rotation)))),
+                 rep(17, times = length(grep("SL2", rownames(pca_tpm_kallisto$rotation))))
+)
+
+plot(pca_tpm_kallisto$rotation[,1], pca_tpm_kallisto$rotation[,2], xlab= paste("PCA1: ", round(summary(pca_tpm_kallisto)$importance[2,1]*100,1),"%", sep=""), ylab=paste("PCA2: ", round(summary(pca_tpm_kallisto)$importance[2,2]*100,1),"%",sep=""), col=color_vector, pch=pch_vector, cex = 1.1,  main = "Kallisto Artritis vs Lupus Cheng Pre ComBat: PC1 vs PC2")
+#text(pca_tpm_kallisto$rotation[,1], pca_tpm_kallisto$rotation[,2], labels = rownames(pca_tpm_kallisto$rotation))
+#legend("top", legend=c("Artritis", "Lupus"), col=c(1,2), pch = c(15,15), pt.cex = 1, cex=0.6, horiz = F, ncol = 1, inset=c(0.1,0.5))
+#legend("top", legend=c("Control", "Enfermedad"), pch = c(2,0), pt.cex = 1, cex=0.6, horiz = F, ncol = 1, inset=c(0.1,0.35))
+
+lotes_tpm_kallisto <- c(rep(1, times = length(grep("EA", rownames(pca_tpm_kallisto$rotation)))),
+                        rep(1, times = length(grep("SA", rownames(pca_tpm_kallisto$rotation)))),
+                        rep(2, times = length(grep("EL2", rownames(pca_tpm_kallisto$rotation)))),
+                        rep(2, times = length(grep("SL2", rownames(pca_tpm_kallisto$rotation))))
+)
+modcombat_tpm_kallisto <- model.matrix(~1, data = data.frame(cmb=lotes_tpm_kallisto))
+combat_tpm_kallisto <- ComBat(dat= tpm_kallisto[,-1], batch = lotes_tpm_kallisto, mod = modcombat_tpm_kallisto, par.prior = T, prior.plots = F)
+
+mad_filt_postcombat <- apply(combat_tpm_kallisto, 1, mad)
+pca_combat_tpm_kallisto <- prcomp(combat_tpm_kallisto[order(mad_filt_postcombat,decreasing = T)[0:2000],])
+plot(pca_combat_tpm_kallisto$rotation[,1], pca_combat_tpm_kallisto$rotation[,2], xlab= paste("PCA1: ", round(summary(pca_combat_tpm_kallisto)$importance[2,1]*100,1),"%", sep=""), ylab=paste("PCA2: ", round(summary(pca_combat_tpm_kallisto)$importance[2,2]*100,1),"%",sep=""), col=color_vector, pch=pch_vector, cex = 1.1,  main = "Kallisto Artritis vs Lupus Cheng Post ComBat: PC1 vs PC2")
+#text(pca_combat_tpm_kallisto$rotation[,1], pca_combat_tpm_kallisto$rotation[,2], labels = rownames(pca_combat_tpm_kallisto$rotation), cex = .8, adj = 1.2)
