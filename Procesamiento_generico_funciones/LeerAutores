@@ -1,4 +1,4 @@
-###only reads txt.gz files
+###only reads txt.gz and xlx files
 ###Must have already specified correct working directory
 ###Two values of interesest are returned inside of a list. 
 ###first one: order_auth is the matrix with all the information. data is already ordered by expression and repeated gene expressions are eliminated
@@ -70,7 +70,7 @@ finauthdf<-cbind(auth[genescol],authdf)
 auth_avg<-rowMeans(finauthdf[,2:length(finauthdf)])
 order_auth<-finauthdf[order(auth_avg,decreasing=TRUE),]
 order_auth<-distinct(order_auth,order_auth[,1],.keep_all=TRUE)
-order_auth<-order_auth[,2:(length(order_auth)-1)]
+order_auth<-order_auth[,1:(length(order_auth)-1)]
 
 authlist<-list("order_auth"=order_auth,"tags"=tags)
 return(authlist)
