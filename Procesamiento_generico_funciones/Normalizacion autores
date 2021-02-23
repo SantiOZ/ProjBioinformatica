@@ -1,10 +1,22 @@
-####NORMALIZAR DOCUMENTO DE AUTORES
-####solo sirve si son datos crudos
-authdf_adj<-order_auth+1
-expressed_auth_log2 = log2(empty_file(authdf_adj,2))
-authnorm<- normalizeQuantiles(expressed_auth_log2)
+normauth<-function(order_auth){
+  neworder_auth<-order_auth[,2:length(order_auth)]
+  
+  datatype=readline("Los datos son continuos o discontinuos? (c/d): ") 
+  
+  if (datatype == "c"){
+    authdf_adj<-neworder_auth+1
+    expressed_auth_log2 = log2(empty_file(authdf_adj,2))
+    authnorm<- normalizeQuantiles(expressed_auth_log2)
+  }else if (datatype=="d"){
+    print("hello")
+  }
 
-plot.densities(expressed_auth_log2, main = 'Density pre qn', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
-plot.densities(authnorm, main = 'Density post qn', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
-
-
+  
+  plot.densities(expressed_auth_log2, main = 'Density pre qn', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+  plot.densities(authnorm, main = 'Density post qn', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+  
+  
+  return(authnorm)
+}
+  
+authnorm<-normauth(order_auth)
