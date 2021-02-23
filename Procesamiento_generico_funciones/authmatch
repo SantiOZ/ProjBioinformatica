@@ -1,0 +1,12 @@
+###matches normalized matrices of two different papers. Returns a combined matrix with only the shared geneids.
+###common matrix has the geneids on column 1
+###must be called multiple times if a combined matrix of more than 2 authors is required
+
+matrixmatching<-function(norm1,norm2){
+  common_match<-match(norm1[,1],norm2[,1])
+  match2<-na.omit(norm2[common_match,])
+  match1<-norm1[match(match2[,1], norm1[,1]),]
+  
+  commonMatrix<-cbind(match1,match2[,2:length(match2)])
+  return(commonMatrix)
+}
