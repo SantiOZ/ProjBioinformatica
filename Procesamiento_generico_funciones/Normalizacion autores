@@ -1,3 +1,18 @@
+####NORMALIZAR DOCUMENTO DE AUTORES
+getNormalizedCounts <- function(count_mat){
+  samples_classA = 1:round(ncol(count_mat)/2)
+  samples_classB = (1:ncol(count_mat))[-samples_classA]
+  aux_data <- count_mat
+  aux_desc <- data.frame(condition=c(rep("treated",length(samples_classA)),rep("untreated",length(samples_classB))), type=rep("paired-end",c(length(samples_classA)+length(samples_classB))))
+  aux_dds <- DESeqDataSetFromMatrix(countData = aux_data, colData = aux_desc, design = ~condition)
+  aux_dds <- DESeq(aux_dds)
+  normalized_counts <- counts(aux_dds, normalized=T)
+  list(dds=aux_dds, norm_counts=normalized_counts)
+}
+
+#####returns authnorm and plots two plot density graphs of the author dataframe
+#####final authnorm is a normalized dataframe that includes the GeneIDs in the first column to be used for matching later
+
 normauth<-function(order_auth){
   neworder_auth<-order_auth[,2:length(order_auth)]
   
@@ -5,18 +20,18 @@ normauth<-function(order_auth){
   
   if (datatype == "c"){
     authdf_adj<-neworder_auth+1
-    expressed_auth_log2 = log2(empty_file(authdf_adj,2))
+    expressed_auth_log2 = log2(authdf_adj)
     authnorm<- normalizeQuantiles(expressed_auth_log2)
   }else if (datatype=="d"){
-    print("hello")
+    authdf_adj<-neworder_auth+1
+    expressed_auth_log2 = round(log2(authdf_adj))
+    authnorm<-getNormalizedCounts(expressed_auth_log2)
   }
 
   
   plot.densities(expressed_auth_log2, main = 'Density pre qn', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
   plot.densities(authnorm, main = 'Density post qn', legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
   
-  
+  authnorm<-cbind(order_auth[1],authnorm)
   return(authnorm)
 }
-  
-authnorm<-normauth(order_auth)
