@@ -21,8 +21,8 @@ auth_pca<-function(tags,authnorm){
   i=0
   while (i<fn){
     color<-(i%/%2)+1
-    print(i)
-    print(color)
+    #print(i)
+    #print(color)
     colorlist<-append(colorlist,color)
     color_vector<-append(color_vector,rep(color, times = length(grep(tags[i+1], rownames(pca_preComBat$rotation)))))
     if (i%%2==0){
