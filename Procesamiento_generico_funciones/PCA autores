@@ -42,5 +42,17 @@ auth_pca<-function(tags,authnorm){
   legend("topright", legend=pca_lgnd, col=c(colorlist),pch = c(17,19), pt.cex = 1, cex=0.75, horiz = F)
   text(pca_preComBat$rotation[,1], pca_preComBat$rotation[,2], labels = row.names(pca_preComBat$rotation), pos = 4,cex=0.5)
   
+  quest<-readline("Los datos provienen de dos autores diferentes?: (si/no)")
+  if (quest=="si"){
+    modcombat_autores <- model.matrix(~1, data = data.frame(cmb=color_vector))
+    combat_autores <- ComBat(dat= authnorm, batch = color_vector, mod = modcombat_autores, par.prior = T, prior.plots = F)
+    
+    mad_filt2 <- apply(combat_autores, 1, mad)
+    pca_postComBat <- prcomp(combat_autores[order(mad_filt2,decreasing = T)[0:2000],])
+    
+    plot(pca_postComBat$rotation[,1], pca_postComBat$rotation[,2], col=color_vector, pch=pch_vector, cex = 1, xlab=paste("PCA2: ", round(summary(pca_postComBat)$importance[2,2]*100,1),"%", sep=""),ylab=paste("PCA1: ", round(summary(pca_preComBat)$importance[2,1]*100,1),"%",sep=""), main = "Autores: Post Combat PC1 vs PC2")
+    legend("topright", legend=pca_lgnd, col=c(colorlist),pch = c(17,19), pt.cex = 1, cex=0.75, horiz = F)
+    text(pca_postComBat$rotation[,1], pca_postComBat$rotation[,2], labels = row.names(pca_postComBat$rotation), pos = 4,cex=0.5)
+    
   
 }
