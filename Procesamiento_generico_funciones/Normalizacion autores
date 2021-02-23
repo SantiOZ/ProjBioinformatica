@@ -25,7 +25,7 @@ normauth<-function(order_auth){
   }else if (datatype=="d"){
     authdf_adj<-neworder_auth+1
     expressed_auth_log2 = round(log2(authdf_adj))
-    authnorm<-getNormalizedCounts(expressed_auth_log2)
+    authnorm<-getNormalizedCounts(expressed_auth_log2) #####problemas en esta linea. Checar con una matriz adecuada
   }
 
   
