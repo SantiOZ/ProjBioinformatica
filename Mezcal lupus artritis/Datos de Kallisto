@@ -1,0 +1,23 @@
+library(readxl)
+library(tximport)
+library(DESeq2)
+library(refGenome)
+library(gplots)
+library(ActivePathways)
+library(rtracklayer)
+library(dplyr)
+library(tibble)
+library(scatterplot3d)
+library(limma)
+library(sva)
+
+getNormalizedCounts <- function(count_mat){
+  samples_classA = 1:round(ncol(count_mat)/2)
+  samples_classB = (1:ncol(count_mat))[-samples_classA]
+  aux_data <- count_mat
+  aux_desc <- data.frame(condition=c(rep("treated",length(samples_classA)),rep("untreated",length(samples_classB))), type=rep("paired-end",c(length(samples_classA)+length(samples_classB))))
+  aux_dds <- DESeqDataSetFromMatrix(countData = aux_data, colData = aux_desc, design = ~condition)
+  aux_dds <- DESeq(aux_dds)
+  normalized_counts <- counts(aux_dds, normalized=T)
+  list(dds=aux_dds, norm_counts=normalized_counts)
+}
