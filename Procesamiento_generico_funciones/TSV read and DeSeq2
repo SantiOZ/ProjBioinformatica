@@ -30,14 +30,14 @@ automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
 ###requiere inicializacion de varias librerias. Hacer eso dentro de la funcion?
 
 deseqtsv<-function(){
-where<-readline("Copia y pega la dirección de los tsvs en tu sistema:  ")
-setwd(where)
+  where<-readline("Copia y pega la dirección de los tsvs en tu sistema:  ")
+  setwd(where)
 
 
 #pide el número de grupos qeu buscas analizar. Lo usual sería dos. Uno para enfermos y control
-gn=NA
-while(is.integer(gn)==FALSE)
-{
+  gn=NA
+  while(is.integer(gn)==FALSE)
+  {
   gn<-readline("Cuantos grupos buscar analizar?: ")
   gn<-as.integer(unlist(gn))
   if(is.integer(gn)==FALSE){
@@ -45,8 +45,11 @@ while(is.integer(gn)==FALSE)
   }
 }
 
-varnames<-vector()
-while(gn>0){
+  varnames<-vector()
+  count_mat<-data.frame(matrix(NA,nrow=188753),stringsAsFactors = FALSE)
+  tpm_aux<-data.frame(matrix(NA,nrow=188753),stringsAsFactors = FALSE)
+  
+  while(gn>0){
   tag<-readline("Dos letras que identifiquen este grupo: ")
   c<-readline("Cuantas muestras existen en este grupo?: ")
   i=1
@@ -54,8 +57,11 @@ while(gn>0){
   while(i<=d){
     varname<-paste(tag,i,sep="")
     fullname<-paste(varname,".tsv",sep="")
-    assign(varname,read.table(file=fullname, sep = "\t", header=TRUE))
+    temp=read.table(file=fullname, sep = "\t", header=TRUE)
+    assign(varname,temp)
     varnames<-append(varnames,varname)
+    count_mat<-cbind(count_mat,temp$est_counts)
+    tpm_aux<-cbind(tpm_aux,temp$tpm)
     i<-i+1
   }
   gn<-gn-1
@@ -63,36 +69,35 @@ while(gn>0){
 
 
 
+  count_mat<-count_mat[,2:(length(varnames)+1)]
+  rownames(count_mat)<-temp$target_id
+  colnames(count_mat)<-c(varnames)
+  tpm_aux<-tpm_aux[,2:(length(varnames)+1)]
+  rownames(tpm_aux)<-temp$target_id
+  colnames(tpm_aux)<-c(varnames)
+  count_mat1 <- count_mat + 1
+  count_mat1 <- round(count_mat1)
+  seleccion <- count_mat1<=0
+  seleccion
+  count_mat1[seleccion]
+  a<- count_mat1[seleccion]
 
-count_mat<-data.frame(eval(as.name(varnames[1]))$est_counts)
-
-for (i in 2:length(varnames)){
-  count_mat<-cbind(count_mat,eval(as.name(varnames[i]))$est_counts)
-  i
-}
-rownames(count_mat)<-eval(as.name(varnames[1]))$target_id
-colnames(count_mat)<-c(varnames)
-count_mat1 <- count_mat + 1
-count_mat1 <- round(count_mat1)
-seleccion <- count_mat1<=0
-seleccion
-count_mat1[seleccion]
-a<- count_mat1[seleccion]
-
-par<-readline("Cuantas parejas de datos quieres comparar?:  ")
-par<-as.integer(unlist(strsplit(par, ",")))
-parejas<-vector()
-for(i in 1:par){
-  par1<-readline("Letras que identifiquen grupo 1 de la comparación:")
-  par2<-readline("Letras que identifiquen grupo 2 de la comparación:")
-  parejas<-append(parejas,par1)
-  parejas<-append(parejas,par2)
+  par<-readline("Cuantas parejas de datos quieres comparar?:  ")
+  par<-as.integer(unlist(strsplit(par, ",")))
+  parejas<-vector()
+  for(i in 1:par){
+    par1<-readline("Letras que identifiquen grupo 1 de la comparación:")
+    par2<-readline("Letras que identifiquen grupo 2 de la comparación:")
+    parejas<-append(parejas,par1)
+    parejas<-append(parejas,par2)
   
   
-}
-comparisons<-list(c(parejas))
-resMat <- automatedDESeq2(count_mat1, comparisons)
+  }
+  comparisons<-list(c(parejas))
+  resMat <- automatedDESeq2(count_mat1, comparisons)
 
-resFrame<-resMat[[1]]
-return(resFrame)
+  resFrame<-resMat[[1]]
+  
+  tsvlist<-list("resFrame"=resFrame,"tpm_aux"=tpm_aux,"varnames"=varnames)
+  return(tsvlist)
 }
