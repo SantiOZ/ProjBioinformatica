@@ -1,0 +1,9 @@
+normtsv<-function(tpm_aux){
+  enfermedad<-readline("Que enfermedad estás procesando?")
+  tpm_adj<-tpm_aux+1
+  expressed_tpm_log2 = log2(empty_row(tpm_adj,2))
+  tpmnorm<-normalizeQuantiles(expressed_tpm_log2)
+  plot.densities(expressed_tpm_log2, main = paste0(enfermedad,' pre qn (tpm)'), legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+  plot.densities(tpmnorm, main =paste0(enfermedad,' post qn (tpm)') , legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright')
+  return(tpmnorm)
+}
