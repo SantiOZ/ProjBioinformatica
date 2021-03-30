@@ -1,0 +1,36 @@
+shinyreadtsv<-function(where,gn,initlist,clist){
+  setwd(where)
+  
+  varnames<-vector()
+  count_mat<-data.frame(matrix(NA,nrow=188753),stringsAsFactors = FALSE)
+  tpm_aux<-data.frame(matrix(NA,nrow=188753),stringsAsFactors = FALSE)
+  f=1
+  while(f<=gn){
+    tag<-initlist[f]
+    c<-clist[f]
+    i=1
+    while(i<=c){
+      varname<-paste(tag,i,sep="")
+      fullname<-paste(varname,".tsv",sep="")
+      temp=read.table(file=fullname, sep = "\t", header=TRUE)
+      assign(varname,temp)
+      varnames<-append(varnames,varname)
+      count_mat<-cbind(count_mat,temp$est_counts)
+      tpm_aux<-cbind(tpm_aux,temp$tpm)
+      i<-i+1
+    }
+    f=f+1 
+  }
+  count_mat<-count_mat[,2:(length(varnames)+1)]
+  rownames(count_mat)<-temp$target_id
+  colnames(count_mat)<-c(varnames)
+  tpm_aux<-tpm_aux[,2:(length(varnames)+1)]
+  rownames(tpm_aux)<-temp$target_id
+  colnames(tpm_aux)<-c(varnames)
+  count_mat1 <- count_mat + 1
+  count_mat1 <- round(count_mat1)
+  
+  tsvlist<-list("count_mat1"=count_mat1,"tpm_aux"=tpm_aux,"varnames"=varnames)
+  
+ return(tsvlist)
+}
