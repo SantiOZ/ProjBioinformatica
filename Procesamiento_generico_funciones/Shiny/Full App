@@ -1,0 +1,705 @@
+library (DESeq2)
+library(tximport)
+library(stringr)
+library(gplots)
+library(ActivePathways)
+library(rtracklayer)
+library(dplyr)
+library(tibble)
+library(scatterplot3d)
+library(RColorBrewer)
+library(BiocManager)
+library(limma)
+library(dplyr)
+library("readxl")
+library(sva)
+library(shiny)
+shinyreadtsv<-function(where,gn,initlist,clist){
+    setwd(where)
+    
+    varnames<-vector()
+    count_mat<-data.frame(matrix(NA,nrow=188753),stringsAsFactors = FALSE)
+    tpm_aux<-data.frame(matrix(NA,nrow=188753),stringsAsFactors = FALSE)
+    f=1
+    while(f<=gn){
+        tag<-initlist[f]
+        c<-clist[f]
+        i=1
+        while(i<=c){
+            varname<-paste(tag,i,sep="")
+            fullname<-paste(varname,".tsv",sep="")
+            temp=read.table(file=fullname, sep = "\t", header=TRUE)
+            assign(varname,temp)
+            varnames<-append(varnames,varname)
+            count_mat<-cbind(count_mat,temp$est_counts)
+            tpm_aux<-cbind(tpm_aux,temp$tpm)
+            i<-i+1
+        }
+        f=f+1 
+    }
+    count_mat<-count_mat[,2:(length(varnames)+1)]
+    rownames(count_mat)<-temp$target_id
+    colnames(count_mat)<-c(varnames)
+    tpm_aux<-tpm_aux[,2:(length(varnames)+1)]
+    rownames(tpm_aux)<-temp$target_id
+    colnames(tpm_aux)<-c(varnames)
+    count_mat1 <- count_mat + 1
+    count_mat1 <- round(count_mat1)
+    
+    tsvlist<-list("count_mat1"=count_mat1,"tpm_aux"=tpm_aux,"varnames"=varnames)
+    
+    return(tsvlist)
+}
+shinydeseq<-function(parejas,count_mat1){
+    
+    comparisons<-list(c(parejas))
+    resMat <- automatedDESeq2(count_mat1, comparisons)
+    
+    resFrame<-resMat[[1]]
+    
+    
+    return(resFrame)
+}
+shinynormtsv<-function(tpm_aux){
+    tpm_adj<-tpm_aux+1
+    expressed_tpm_log2 = log2(empty_row(tpm_adj,2))
+    tpmnorm<-normalizeQuantiles(expressed_tpm_log2)
+    normlist<-list("preqntpm"=expressed_tpm_log2,"postqntpm"=tpmnorm)
+    return(normlist)
+}
+
+
+#automated deseq had an accent in a comment. making it incompatible for UTF shiny encoding somehow?
+automatedDESeq2=function(count_mat=count_mat, comparisons=comparisons){
+    # Si no hacemos esta linea, y hay genes con ceros, sale pval/qval como NA
+    # count_mat = count_mat +1
+    
+    #Renglones -> Genes, Columnas -> Replicas
+    resList=list()
+    for (n in 1:length(comparisons)){
+        controls = comparisons[[n]][1]
+        samples = comparisons[[n]][2]
+        samples_classA = colnames(count_mat)[grep(controls, colnames(count_mat))]
+        samples_classB = colnames(count_mat)[grep(samples, colnames(count_mat))]
+        aux_data <- count_mat[,c(samples_classA,samples_classB)]
+        aux_desc <- data.frame(condition=c(rep("treated",length(samples_classA)),rep("untreated",length(samples_classB))), type=rep("paired-end",c(length(samples_classA)+length(samples_classB))))
+        aux_dds <- DESeq2::DESeqDataSetFromMatrix(countData = aux_data, colData = aux_desc, design = ~condition)
+        aux_dds <- DESeq2::DESeq(aux_dds)
+        aux_res <- as.data.frame(results(aux_dds))
+        # ponemos validaciones para que no salgan NAs
+        aux_res$log2FoldChange = sapply(aux_res$log2FoldChange, function(x) ifelse(is.na(x), 0, x))
+        aux_res$pvalue = sapply(aux_res$pvalue, function(x) ifelse(is.na(x), 1, x))
+        aux_res$padj = sapply(aux_res$padj, function(x) ifelse(is.na(x), 1, x))
+        
+        resList[[paste(controls,"_",samples,sep="")]] = cbind(aux_res, counts(aux_dds, normalized=T))
+        # colnames(resList[[paste(controls,"_",samples,sep="")]]) = c("baseMean","log2FoldChange","lfcSE","stat", "pvalue", "padj", paste(controls[n],"_1",sep=""), paste(controls[n],"_2",sep=""), paste(samples[n],"_1",sep=""), paste(samples[n],"_2",sep=""))	
+        colnames(resList[[paste(controls,"_",samples,sep="")]]) = c("baseMean","log2FoldChange","lfcSE","stat", "pvalue", "padj", samples_classA, samples_classB)	
+    }
+    return(resList)
+}
+plot.densities <- function(m, m2, m3, m4, lty=rep(1:6, each=length(palette())), lwd=1, cex=1, legends=TRUE, legend.pos="topleft", legend.cols=1, legend.cex=1, horiz=FALSE, xlim=if(horiz) c(mny,mxy) else c(mnx,mxx),ylim=if(!horiz) c(mny,mxy) else c(mnx,mxx), pch=NULL, type="l", npch=20, col=1:length(d), normalize=FALSE, q=NULL, overall=length(d) > 4, ylab="Density", xlab="", main="", ...) { 
+    if (!missing(m2) || !missing(m3) || !missing(m4)) {
+        xn <- deparse(substitute(m))
+        m <- as.vector(m)
+        if (!missing(m2)) { m <- cbind(m,as.vector(m2)); xn <- c(xn,deparse(substitute(m2))) }
+        if (!missing(m3)) { m <- cbind(m,as.vector(m3)); xn <- c(xn,deparse(substitute(m3))) }
+        if (!missing(m4)) { m <- cbind(m,as.vector(m4)); xn <- c(xn,deparse(substitute(m4))) }
+        colnames(m) <- xn
+    }
+    else if (!is.list(m)){
+        m <- as.matrix(m)
+    }
+    if (is.list(m)) d <- lapply(m, function(x) { suppressWarnings(density(x[is.finite(x)],...)) })
+    else d <- apply(m, 2, function(x) { suppressWarnings(density(x[is.finite(x)],...)) })
+    lty <- circularize(lty, length(d))
+    lwd <- circularize(lwd, length(d))
+    cex <- circularize(cex, length(d))
+    if (!is.null(q)) {
+        if (is.list(m)) qq <- lapply(m, function(x) { suppressWarnings(quantile(x[is.finite(x)], q)) })
+        else qq <- apply(m, 2, function(x) { suppressWarnings(quantile(x[is.finite(x)], q)) })
+    }
+    if (overall) {
+        o <- unlist(m)
+        n <- names(d)
+        d[[length(d)+1]] <- density(o[is.finite(o)], ...)
+        names(d) <- c(n, "OVERALL")
+        lty[length(d)] <- 1
+        lwd[length(d)] <- 3
+        col[length(d)] <- 1
+        cex[length(d)] <- 1
+        if (!is.null(q)) qq[length(d)] <- suppressWarnings(quantile(o[is.finite(o)], q))
+    }
+    if (normalize) {
+        for (i in 1:length(d)) {
+            d[[i]]$y <- d[[i]]$y/max(d[[i]]$y)
+        }
+    }
+    mxy <- max(unlist(lapply(d, function(x) max(x$y))))
+    mny <- min(unlist(lapply(d, function(x) min(x$y))))
+    mxx <- max(unlist(lapply(d, function(x) max(x$x))))
+    mnx <- min(unlist(lapply(d, function(x) min(x$x))))
+    lty <- rep(lty, length(d), length.out=length(d))
+    pch <- ifelse(type=="l",rep(0,length(d)),rep(pch, length(d), length.out=length(d)))
+    suppressWarnings(plot(0,0,type="n",ylim=ylim,xlim=xlim, main=main, xlab=xlab, ylab=ylab, ...))
+    cols <- if (horiz) c("y","x") else c("x","y")
+    for (i in length(d):1) {
+        suppressWarnings(lines(d[[i]][cols], col=col[i], lty=lty[i], pch=pch[i], type=type, lwd=lwd[i], cex=cex[i]))
+        if (!is.null(q)) {
+            for (k in 1:length(q)) {
+                if (horiz) abline(h=qq[[i]][k], lty=k, col=col[i])
+                else abline(v=qq[[i]][k], lty=k, col=col[i])
+            }
+        }
+    }
+    if (type != "l") {
+        pch <- rep(pch, length(d), length.out=length(d))
+        if (horiz) for (i in 1:length(d)) suppressWarnings(points(d[[i]]$y[seq(1,length(d[[i]]$y), length.out=npch)], d[[i]]$x[seq(1,length(d[[i]]$y), length.out=npch)], col=col[i], pch=pch[i], ...))
+        else   for (i in 1:length(d)) suppressWarnings(points(d[[i]]$x[[seq(1,length(d[[i]]$y), length.out=npch)]], d[[i]]$y[seq(1,length(d[[i]]$y), length.out=npch)], col=col[i], pch=pch[i], ...))
+    }
+    if (length(legends) > 1 || (!is.character(legends) && legends)) {
+        if ((length(legends) == length(d)) && (length(legends) > 0)) xl <- legends
+        else {
+            xl <- if (is.list(m)) names(m) else colnames(m)
+            if (overall && !is.null(xl)) xl <- c(xl, "OVERALL")
+        }
+        if (!is.null(xl)) {
+            plot.legend(legend.pos, xl, col=col[1:length(d)], lty=lty, ncol=legend.cols, cex=legend.cex, pch=if (is.null(pch[1])) NULL else pch)
+        }
+    }
+    invisible(d)
+}
+quantile.normalization <- function(l.mx, verbose=FALSE, averages=FALSE, center=FALSE, q.func=my.quantile, m.func=mean, qmin=min(avg), qmax=max(avg), qmid=1, qshrink=NULL) { 
+    #q.func=quantile # if you want to use the embed slower R quantile (slightly different results)
+    #convert to list
+    retfn <- function(x) x
+    if (is.data.frame(l.mx) || is.matrix(l.mx)) { 
+        .rn <- rownames(l.mx)
+        l.mx <- lapply(as.list(data.frame(l.mx)), function(x) { names(x) <- .rn; x; })
+        if (is.data.frame(l.mx))
+            retfn <- function(x) { x <- data.frame(x); rownames(x) <- .rn; x; }
+        else
+            retfn <- function(x) { x <- data.matrix(data.frame(x)); rownames(x) <- .rn; x; }
+    }
+    
+    #scale values to min~max range, or to part of the median/center quantile (qmid)
+    q.scale <- function(v, qmin=min(v), qmax=max(v), qmid=1) {
+        qs <- quantile(v, p=c((1-qmid)/2,(qmid+1)/2))
+        vmin <- qs[1]
+        vmax <- qs[2]
+        #3-rule eq: (v - vmin) / (vmax - vmin) = (q - qmin) / (qmax - qmin)
+        ((v - vmin) / (vmax - vmin)) * (qmax - qmin) + qmin
+    }
+    
+    #median centering
+    if (center) {
+        if (verbose) cat("Centering...\n")
+        # center to 
+        md <- unlist(lapply(l.mx, median, na.rm = TRUE))
+        mmd <- median(md)
+        l.mx <- lapply(l.mx, function(l) l-(median(l,na.rm=TRUE) - mmd))
+    }
+    
+    #shrinking distributions to median/center quantile range
+    if (!is.null(qshrink)) {
+        if (verbose) cat("Shrinking...\n")
+        minq <- median(unlist(lapply(l.mx, quantile, p=(1-qshrink)/2, na.rm = TRUE)))
+        maxq <- median(unlist(lapply(l.mx, quantile, p=(qshrink+1)/2, na.rm = TRUE)))
+        l.mx <- lapply(l.mx, q.scale, qmin=minq, qmax=maxq, qmid=qshrink)
+    }
+    
+    #maximum number of values
+    m <- 0 
+    for (i in 1:length(l.mx)) m <- max(m,sum(is.finite(l.mx[[i]])))
+    if (verbose) cat("Max-Quantiles:",m,"\n")
+    
+    #quantiling
+    q.mx <- matrix(NA,nrow=m, ncol=length(l.mx))
+    for (i in 1:length(l.mx)) { q.mx[,i] <- q.func(l.mx[[i]],probs=(1:m)/m,na.rm=TRUE); if (verbose) cat("Quantiled:",i,"\n"); }
+    
+    #averaging
+    avg <- numeric(length=m)
+    if (verbose) cat("Averaging...\n")
+    for (i in 1:m) avg[i] <- m.func(q.mx[i,], na.rm=TRUE) 
+    
+    #scale averages?
+    if (min(avg) != qmin  ||  max(avg) != qmax  ||  qmid < 1) avg <- q.scale(avg, qmin=qmin, qmax=qmax, qmid=qmid)
+    
+    #normalizing
+    q.mx <- list()
+    if (verbose) cat("Normalizing...\n")
+    for (i in 1:length(l.mx)) { 
+        if (verbose) cat("Computing ecdf",i,"...\n");
+        avg.cdf <- ecdf(l.mx[[i]][is.finite(l.mx[[i]])])
+        r <- pmin(pmax(1,avg.cdf(l.mx[[i]])*m),m)
+        xq <- avg[r]
+        names(xq) <- names(l.mx[[i]])
+        q.mx[[i]] <- xq
+    }
+    names(q.mx) <- names(l.mx)
+    
+    #return
+    if (verbose) cat("Done!\n");
+    if (averages) avg else retfn(q.mx)
+}
+circularize <- function(x, len) {
+    if (length(x) < len) {
+        x <- rep(x, length.out=len)
+    }
+    x
+}
+empty_row <- function(mat, ref, equal = FALSE){
+    if (equal==FALSE) {
+        filt = apply(mat, 1, function(x) ifelse(all(x < ref), 0, 1))
+        filtered = mat[-which(filt == 0),]
+    } else {
+        filt = apply(mat, 1, function(x) ifelse(all(x == ref), 0, 1))
+        filtered = mat[-which(filt == 0),]
+    }
+    return(filtered)
+}
+
+plot.legend <- function (x, y = NULL, legend, fill = NULL, col = "black", lty, 
+                         lwd, pch, angle = 45, density = NULL, bty = "o", bg = par("bg"), 
+                         pt.bg = NA, cex = 1, pt.cex = cex, pt.lwd = lwd, xjust = 0, 
+                         yjust = 1, x.intersp = 1, y.intersp = 1, adj = c(0, 0.5), 
+                         text.width = NULL, text.col = par("col"), merge = do.lines && 
+                             has.pch, trace = FALSE, plot = TRUE, ncol = 1, horiz = FALSE, 
+                         title = NULL, inset = 0, border.col="black") 
+{
+    if (missing(legend) && !missing(y) && (is.character(y) || 
+                                           is.expression(y))) {
+        legend <- y
+        y <- NULL
+    }
+    mfill <- !missing(fill) || !missing(density)
+    if (length(title) > 1) 
+        stop("invalid title")
+    n.leg <- if (is.call(legend)) 
+        1
+    else length(legend)
+    if (n.leg == 0) 
+        stop("'legend' is of length 0")
+    auto <- if (is.character(x)) 
+        match.arg(x, c("bottomright", "bottom", "bottomleft", 
+                       "left", "topleft", "top", "topright", "right", "center"))
+    else NA
+    if (is.na(auto)) {
+        xy <- xy.coords(x, y)
+        x <- xy$x
+        y <- xy$y
+        nx <- length(x)
+        if (nx < 1 || nx > 2) 
+            stop("invalid coordinate lengths")
+    }
+    else nx <- 0
+    xlog <- par("xlog")
+    ylog <- par("ylog")
+    rect2 <- function(left, top, dx, dy, density = NULL, angle, 
+                      ...) {
+        r <- left + dx
+        if (xlog) {
+            left <- 10^left
+            r <- 10^r
+        }
+        b <- top - dy
+        if (ylog) {
+            top <- 10^top
+            b <- 10^b
+        }
+        rect(left, top, r, b, angle = angle, density = density, 
+             ...)
+    }
+    segments2 <- function(x1, y1, dx, dy, ...) {
+        x2 <- x1 + dx
+        if (xlog) {
+            x1 <- 10^x1
+            x2 <- 10^x2
+        }
+        y2 <- y1 + dy
+        if (ylog) {
+            y1 <- 10^y1
+            y2 <- 10^y2
+        }
+        segments(x1, y1, x2, y2, ...)
+    }
+    points2 <- function(x, y, ...) {
+        if (xlog) 
+            x <- 10^x
+        if (ylog) 
+            y <- 10^y
+        points(x, y, ...)
+    }
+    text2 <- function(x, y, ...) {
+        if (xlog) 
+            x <- 10^x
+        if (ylog) 
+            y <- 10^y
+        text(x, y, ...)
+    }
+    if (trace) 
+        catn <- function(...) do.call("cat", c(lapply(list(...), 
+                                                      formatC), list("\n")))
+    cin <- par("cin")
+    Cex <- cex * par("cex")
+    if (is.null(text.width)) 
+        text.width <- max(strwidth(legend, units = "user", cex = cex))
+    else if (!is.numeric(text.width) || text.width < 0) 
+        stop("'text.width' must be numeric, >= 0")
+    xc <- Cex * xinch(cin[1], warn.log = FALSE)
+    yc <- Cex * yinch(cin[2], warn.log = FALSE)
+    xchar <- xc
+    xextra <- 0
+    yextra <- yc * (y.intersp - 1)
+    ymax <- max(yc, strheight(legend, units = "user", cex = cex))
+    ychar <- yextra + ymax
+    if (trace) 
+        catn("  xchar=", xchar, "; (yextra,ychar)=", c(yextra, 
+                                                       ychar))
+    if (mfill) {
+        xbox <- xc * 0.8
+        ybox <- yc * 0.5
+        dx.fill <- xbox
+    }
+    do.lines <- (!missing(lty) && (is.character(lty) || any(lty > 
+                                                                0))) || !missing(lwd)
+    n.legpercol <- if (horiz) {
+        if (ncol != 1) 
+            warning("horizontal specification overrides: Number of columns := ", 
+                    n.leg)
+        ncol <- n.leg
+        1
+    }
+    else ceiling(n.leg/ncol)
+    if (has.pch <- !missing(pch) && length(pch) > 0) {
+        if (is.character(pch) && !is.na(pch[1]) && nchar(pch[1], 
+                                                         type = "c") > 1) {
+            if (length(pch) > 1) 
+                warning("not using pch[2..] since pch[1] has multiple chars")
+            np <- nchar(pch[1], type = "c")
+            pch <- substr(rep.int(pch[1], np), 1:np, 1:np)
+        }
+        if (!merge) 
+            dx.pch <- x.intersp/2 * xchar
+    }
+    x.off <- if (merge) 
+        -0.7
+    else 0
+    if (is.na(auto)) {
+        if (xlog) 
+            x <- log10(x)
+        if (ylog) 
+            y <- log10(y)
+    }
+    if (nx == 2) {
+        x <- sort(x)
+        y <- sort(y)
+        left <- x[1]
+        top <- y[2]
+        w <- diff(x)
+        h <- diff(y)
+        w0 <- w/ncol
+        x <- mean(x)
+        y <- mean(y)
+        if (missing(xjust)) 
+            xjust <- 0.5
+        if (missing(yjust)) 
+            yjust <- 0.5
+    }
+    else {
+        h <- (n.legpercol + (!is.null(title))) * ychar + yc
+        w0 <- text.width + (x.intersp + 1) * xchar
+        if (mfill) 
+            w0 <- w0 + dx.fill
+        if (has.pch && !merge) 
+            w0 <- w0 + dx.pch
+        if (do.lines) 
+            w0 <- w0 + (2 + x.off) * xchar
+        w <- ncol * w0 + 0.5 * xchar
+        if (!is.null(title) && (tw <- strwidth(title, units = "user", 
+                                               cex = cex) + 0.5 * xchar) > w) {
+            xextra <- (tw - w)/2
+            w <- tw
+        }
+        if (is.na(auto)) {
+            left <- x - xjust * w
+            top <- y + (1 - yjust) * h
+        }
+        else {
+            usr <- par("usr")
+            inset <- rep(inset, length.out = 2)
+            insetx <- inset[1] * (usr[2] - usr[1])
+            left <- switch(auto, bottomright = , topright = , 
+                           right = usr[2] - w - insetx, bottomleft = , left = , 
+                           topleft = usr[1] + insetx, bottom = , top = , 
+                           center = (usr[1] + usr[2] - w)/2)
+            insety <- inset[2] * (usr[4] - usr[3])
+            top <- switch(auto, bottomright = , bottom = , bottomleft = usr[3] + 
+                              h + insety, topleft = , top = , topright = usr[4] - 
+                              insety, left = , right = , center = (usr[3] + 
+                                                                       usr[4] + h)/2)
+        }
+    }
+    if (plot && bty != "n") {
+        if (trace) 
+            catn("  rect2(", left, ",", top, ", w=", w, ", h=", 
+                 h, ", ...)", sep = "")
+        rect2(left, top, dx = w, dy = h, col = bg, density = NULL)
+    }
+    xt <- left + xchar + xextra + (w0 * rep.int(0:(ncol - 1), 
+                                                rep.int(n.legpercol, ncol)))[1:n.leg]
+    yt <- top - 0.5 * yextra - ymax - (rep.int(1:n.legpercol, 
+                                               ncol)[1:n.leg] - 1 + (!is.null(title))) * ychar
+    if (mfill) {
+        if (plot) {
+            fill <- rep(fill, length.out = n.leg)
+            rect2(left = xt, top = yt + ybox/2, dx = xbox, dy = ybox, 
+                  col = fill, density = density, angle = angle, 
+                  border = border.col)
+        }
+        xt <- xt + dx.fill
+    }
+    if (plot && (has.pch || do.lines)) 
+        col <- rep(col, length.out = n.leg)
+    if (missing(lwd)) 
+        lwd <- par("lwd")
+    if (do.lines) {
+        seg.len <- 2
+        if (missing(lty)) 
+            lty <- 1
+        ok.l <- !is.na(lty) & (is.character(lty) | lty > 0)
+        lty <- rep(lty, length.out = n.leg)
+        lwd <- rep(lwd, length.out = n.leg)
+        if (trace) 
+            catn("  segments2(", xt[ok.l] + x.off * xchar, ",", 
+                 yt[ok.l], ", dx=", seg.len * xchar, ", dy=0, ...)")
+        if (plot) 
+            segments2(xt[ok.l] + x.off * xchar, yt[ok.l], dx = seg.len * 
+                          xchar, dy = 0, lty = lty[ok.l], lwd = lwd[ok.l], 
+                      col = col[ok.l])
+        xt <- xt + (seg.len + x.off) * xchar
+    }
+    if (has.pch) {
+        pch <- rep(pch, length.out = n.leg)
+        pt.bg <- rep(pt.bg, length.out = n.leg)
+        pt.cex <- rep(pt.cex, length.out = n.leg)
+        pt.lwd <- rep(pt.lwd, length.out = n.leg)
+        ok <- !is.na(pch) & (is.character(pch) | pch >= 0)
+        x1 <- (if (merge) 
+            xt - (seg.len/2) * xchar
+            else xt)[ok]
+        y1 <- yt[ok]
+        if (trace) 
+            catn("  points2(", x1, ",", y1, ", pch=", pch[ok], 
+                 ", ...)")
+        if (plot) 
+            points2(x1, y1, pch = pch[ok], col = col[ok], cex = pt.cex[ok], 
+                    bg = pt.bg[ok], lwd = pt.lwd[ok])
+        if (!merge) 
+            xt <- xt + dx.pch
+    }
+    xt <- xt + x.intersp * xchar
+    if (plot) {
+        if (!is.null(title)) 
+            text(left + w/2, top - ymax, labels = title, adj = c(0.5, 
+                                                                 0), cex = cex, col = text.col)
+        text2(xt, yt, labels = legend, adj = adj, cex = cex, 
+              col = text.col)
+    }
+    invisible(list(rect = list(w = w, h = h, left = left, top = top), 
+                   text = list(x = xt, y = yt)))
+}
+
+# Define UI for application
+ui <- fluidPage(
+    #Allows for multiple pages on the app
+    tabsetPanel(
+        id = "wizard",
+        type = "hidden",
+        #Page 1 is dedicated to download tsvs. It also outputs count_mat1 and varnames, two objects that are used in
+        #future functions
+        tabPanel("page_1", 
+                 # Application title
+                 titlePanel("Process your tsvs"),
+                 
+                 #Provides address of tsvs
+                 textInput("where","Copy and paste the address of the folder containing your tsvs"),
+                 
+                 #Provides name of disease 
+                 #(This should somehow separate the dataframes into different diseases so they may be normalized and grpahed separately)
+                 textInput("disease","What disease do the patinetns int he sample exhibit?"),
+                 
+                 #Provides numbers of groups 
+                 numericInput("gn","How many groups of tsvs do you wish to process?",value=1,min=1,max=4),
+                 
+                 #Data for each group
+                 uiOutput("groupnum"),
+                 
+                 #Action button to downlad tsvs and build tsv matrix
+                 actionButton("download","Download TSVS",class="btn-primary btn-block"),
+                 
+                 #Shows the tsvmatrix
+                 dataTableOutput("tsvmatrix"),
+                 
+                 #moves to next page. to process deseq
+                 actionButton("page_12","Continue")
+        ),
+        tabPanel("page_2", 
+                 
+                 
+                 titlePanel("DESeq analysis"),
+                 #Provides number of pairs to be compared
+                 numericInput("pairnum","How many pairs do you wish to compare?",value=1,min=1,max=2),
+                 #provides the two groups in that pair
+                 uiOutput("pairchoice"),
+                 
+                 actionButton("deseq","Analyze",class="btn-primary btn-block"),
+                 
+                 #RESframe
+                 dataTableOutput("resframe"),
+                 
+                 actionButton("page_21", "Return"),
+                 actionButton("page_23","Continue")
+
+        ),
+        tabPanel("page_3",
+                 
+                 titlePanel("Normalize"),
+                 textInput("graphtitle","What disease is being analyzed?"),
+                 actionButton("plot","Normalize",class="btn-primary btn-block"),
+                 fluidRow(
+                     column(6,plotOutput("preqn")),
+                     column(6,plotOutput("postqn"))
+                     
+                 ),
+                 
+                 
+                 actionButton("page_32","Return"),
+                 actionButton("page_34","Continue")
+        ),
+        tabPanel("page_4",
+                 
+                 titlePanel("PCA and COMBAT")
+        )
+    )
+
+)
+
+# Define server logic 
+server <- function(input, output) {
+    #Lets the user input the names and number of samples per each group. The ui changes with the value gn
+    output$groupnum <- renderUI({
+        if (input$gn == 1) {
+            tagList(
+                textInput("tag1","Two letters to identify this group"),
+                numericInput("c1","How many samples exist in this group?",value=0,min=0)
+                )
+            
+        } else if (input$gn==2){
+            tagList(
+                fluidRow(
+                    column(6,textInput("tag1","Two letters to identify this group")),
+                    column(6,textInput("tag2","Two letters to identify this group"))
+                ),
+                fluidRow(
+                    column(6,numericInput("c1","How many samples exist in this group?",value=0,min=0)),
+                    column(6,numericInput("c2","How many samples exist in this group?",value=0,min=0))
+                )
+            ) 
+        
+        } else if (input$gn==3){
+            tagList(
+                fluidRow(
+                    column(4,textInput("tag1","Two letters to identify this group")),
+                    column(4,textInput("tag2","Two letters to identify this group")),
+                    column(4,textInput("tag3","Two letters to identify this group"))
+                ),
+                fluidRow(
+                    column(4,numericInput("c1","How many samples exist in this group?",value=0,min=0)),
+                    column(4,numericInput("c2","How many samples exist in this group?",value=0,min=0)),
+                    column(4,numericInput("c3","How many samples exist in this group?",value=0,min=0))
+            )
+        ) 
+        } else if (input$gn==4){
+            tagList(
+                fluidRow(
+                    column(3,textInput("tag1","Two letters to identify this group")),
+                    column(3,textInput("tag2","Two letters to identify this group")),
+                    column(3,textInput("tag3","Two letters to identify this group")),
+                    column(3,textInput("tag4","Two letters to identify this group"))
+                ),
+                fluidRow(
+                    column(3,numericInput("c1","How many samples exist in this group?",value=0,min=0)),
+                    column(3,numericInput("c2","How many samples exist in this group?",value=0,min=0)),
+                    column(3,numericInput("c3","How many samples exist in this group?",value=0,min=0)),
+                    column(3,numericInput("c4","How many samples exist in this group?",value=0,min=0))
+                )
+            ) 
+        }         
+    })
+    
+    #Lets the user input the number of pairs and allows them to populate those pairs. THe ui changes with the value pairnum
+    output$pairchoice<-renderUI({
+        if (input$pairnum ==1){
+            tagList(
+                selectInput("pair1.1","Initials of the first group in the pair",choices=listtags()),
+                selectInput("pair1.2","Initials of the second group in the pair",choices=listtags())                
+            )
+        }else {
+            tagList(
+                fluidRow(
+                    column(6,selectInput("pair1.1","Initials of the first group in the pair",choices=listtag())),
+                    column(6,selectInput("pair2.1","Initials of the first group in the pair",choices=listtag()))
+                ),
+                fluidRow(
+                    column(6,selectInput("pair1.2","Initials of the first group in the pair",choices=listtag())),
+                    column(6,selectInput("pair2.2","Initials of the first group in the pair",choices=listtag()))
+                )
+            )    
+        }
+    })
+    
+    #Page navigation
+    switch_page <- function(i) {
+        updateTabsetPanel(inputId = "wizard", selected = paste0("page_", i))
+    }
+    
+    observeEvent(input$page_12,switch_page(2))
+    observeEvent(input$page_21,switch_page(1))
+    observeEvent(input$page_23,switch_page(3))
+    observeEvent(input$page_32,switch_page(2))
+    observeEvent(input$page_34,switch_page(4))
+    
+
+    #Read User inputs into a reactive value
+    listtags<-reactive(c(input$tag1,input$tag2,input$tag3,input$tag4))
+    cs<-reactive(c(input$c1,input$c2,input$c3,input$c4))
+    parejas<-reactive(c(input$pair1.1,input$pair1.2,input$pair2.1,input$pair2.2))
+    
+    #read tsvs with shinyreadtsvs. returns a list with three objects. tpm_aux, count_mat1, and varnames
+    tsvlist<-eventReactive(input$download,{
+
+        shinyreadtsv(input$where,input$gn,listtags(),cs())
+    })
+    
+    #Analzes countmat dataframe with deseq2. returns a dataframe
+    resFrame<-eventReactive(input$deseq,{
+        shinydeseq(parejas(),tsvlist()$count_mat1)
+    })
+    
+    #normalizes tpm matrix and graphs density plots
+    gt<-reactive(input$graphtitle)
+    normlist<-eventReactive(input$plot,{
+        shinynormtsv(tsvlist()$tpm_aux)
+        })
+    
+    #outputs
+    output$tsvmatrix<-renderDataTable(tsvlist()$tpm_aux,options = list(pageLength = 10))
+    output$resframe<-renderDataTable(resFrame(),options=list(pageLength=10))
+    output$preqn<-renderPlot(plot.densities(normlist()$preqntpm, main = paste0(gt(),' pre qn (tpm)'), legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright'),res=96)
+    output$postqn<-renderPlot(plot.densities(normlist()$postqntpm, main =paste0(gt(),' post qn (tpm)') , legend.cex = .3, legend.cols = 4, legend.pos = 'bottomright'),res=96)
+    
+}
+
+
+# Run the application 
+shinyApp(ui = ui, server = server)
