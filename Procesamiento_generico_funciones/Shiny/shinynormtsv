@@ -1,0 +1,6 @@
+shinynormtsv<-function(tpm_aux){
+  tpm_adj<-tpm_aux+1
+  expressed_tpm_log2 = log2(empty_row(tpm_adj,2))
+  tpmnorm<-normalizeQuantiles(expressed_tpm_log2)
+  return(tpmnorm)
+}
