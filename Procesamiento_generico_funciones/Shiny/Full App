@@ -525,7 +525,8 @@ ui <- fluidPage(
                  textInput("where","Copy and paste the address of the folder containing your tsvs"),
                  
                  #Provides name of disease 
-                 #(This should somehow separate the dataframes into different diseases so they may be normalized and grpahed separately)
+                 #(This should somehow separate the dataframes into different diseases so they may be normalized and graphed separately)
+                 #make this the basis for future changes
                  textInput("disease","What disease do the patinetns int he sample exhibit?"),
                  
                  #Provides numbers of groups 
