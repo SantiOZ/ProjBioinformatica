@@ -53,27 +53,26 @@ library("tidyverse")
   emptyCheng <- Cheng[-which(apply(Cheng[,-1], 1, mean) == 0),]
   emptyShchet <- Shchetynsky[-which(apply(Cheng[,-1], 1, mean) == 0),]
 
-#PRUEBAS PARA FUCNION
-
-  #Normalizaci?n, logaritmo y grafico individual
-  normalizedCheng <- normalizeQuantiles(emptyCheng[,-1])
-  logCheng <- log2(normalizedCheng + 1)
-  plotDensities(logCheng, legend = "right", main = "Enfermos Lupus")
-                
+#PRUEBAS PARA FUNCION
+  
+  #Grafico de densidades Cheng y Shchet
+  logCheng <- log2(emptyCheng[,-1] + 1)
+  normalizedCheng <- normalizeQuantiles(logCheng)
+  plotDensities(normalizedCheng, legend = "right", main = "Enfermos Lupus")
                 
   normalizedShchet <- normalizeQuantiles(emptyShchet[,-1])
   logShchet <- log2(normalizedShchet + 1)
   plotDensities(logShchet, legend = "right", main = "Enfermos Artitris")
   
   
-  #PCA individual Cheng
+  #PCA Cheng: Grafico de densidades sin color
   madCheng <- apply(normalizedCheng, 1, mad)
   pcaCheng <- prcomp(normalizedCheng[order(madCheng, decreasing = T),])
   plot(pcaCheng$rotation[,1], pcaCheng$rotation[,2],  main = "Cheng: PC1 vs PC2", 
        xlab= paste("PCA1: ", round(summary(pcaCheng)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""),
-       col= c("green", "red")) 
+       ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""))
   
+  #PCA Cheng: Diferenciacion de columnas para añadir color
   pcaMat <- as.data.frame(t(pcaCheng$rotation)) 
   pcaMatSan <- pcaMat %>% select(contains("S"))
   pcaMatEnf <- pcaMat %>% select(contains("E"))
@@ -91,7 +90,7 @@ library("tidyverse")
        ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""),
        col= c("red"), ylim =  rangePC2 <- range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]))
   
-  #PCA individual Shchet
+  #PCA Shchet:Grafico de densidades sin color
   madShchet <- apply(normalizedShchet, 1, mad)
   pcaShchet <- prcomp(normalizedShchet[order(madShchet, decreasing = T),])
   plot(pcaShchet$rotation[,1], pcaShchet$rotation[,2],  main = "Shchet: PC1 vs PC2", 
@@ -99,6 +98,7 @@ library("tidyverse")
        ylab=paste("PCA2: ", round(summary(pcaShchet)$importance[2,2]*100,1),"%",sep=""),
        col= c("green", "red")) 
   
+  #PCA Shchet: Diferenciacion de columnas para añadir color
   pcaMat <- as.data.frame(t(pcaShchet$rotation)) 
   pcaMatSan <- pcaMat %>% select(contains("S"))
   pcaMatEnf <- pcaMat %>% select(contains("E"))
@@ -116,17 +116,61 @@ library("tidyverse")
        ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""),
        col= c("red"), ylim =  rangePC2 <- range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]))
   
-  #Comparacion de dos datasets
-  compareData <- merge(emptyCheng[-1], emptyShchet[-1], by=0)
-  rownames(compareData) <- compareData[,1]
-  compareData <- compareData[,-1]
+  #Unión de dos datasets para comparación Cheng y Shchet
+  compareCxS <- merge(emptyCheng[-1], emptyShchet[-1], by=0)
+  rownames(compareCxS) <- compareCxS[,1]
+  compareCxS <- compareCxS[,-1]
   
-  #Normalizaci?n, logaritmo y grafico comparado
-  normalizedCompare <- normalizeQuantiles(compareData)
-  logCompare <- log2(normalizedCompare + 1)
-  plotDensities(logCompare, legend = "right", main = "Enfermos Artritis & Lupus")
+  #Unión de dos datasets para comparación Shchet y Cheng
+  compareSxC <- merge(emptyShchet[-1], emptyCheng[-1], by=0)
+  rownames(compareSxC) <- compareSxC[,1]
+  compareSxC <- compareSxC[,-1]
+  
+  #ChengxShchet: Normalizacion, logaritmo y grafico
+  logCxS <- log2(compareCxS + 1)
+  normalizedCxS <- normalizeQuantiles(logCxS)
+  plotDensities(normalizedCxS, legend = "right", main = "Enfermos Artritis & Lupus")
+  
+  #ShchetxCheng: Normalizacion, logaritmo y grafico
+  logSxC <- log2(compareSxC + 1)
+  normalizedSxC <- normalizeQuantiles(logSxC)
+  plotDensities(normalizedSxC, legend = "right", main = "Enfermos Artritis & Lupus")
 
+  #ChengxShchet:PCA con color
+  madCxS <- apply(normalizedCxS, 1, mad)
+  pcaCxS <- prcomp(normalizedCxS[order(madCxS, decreasing = T),]) #Datasets invertidos
   
+  pcaMatCxS <- as.data.frame(t(pcaCxS$rotation)) 
+  pcaMatCxS_San <- pcaMatCxS %>% select(contains("S"))
+  pcaMatCxS_Enf <- pcaMatCxS %>% select(contains("E"))
+  
+  plot(t(pcaMatCxS_San)[,1], t(pcaMatCxS_San)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+       xlab= paste("PCA1: ", round(summary(pcaCxS)$importance[2,1]*100,1),"%", sep=""), 
+       ylab=paste("PCA2: ", round(summary(pcaCxS)$importance[2,2]*100,1),"%",sep=""),
+       col= c("green"), ylim = range(t(pcaMatCxS)[,2]), xlim = range(t(pcaMatCxS)[,1])) 
+  par(new=TRUE)
+  plot(t(pcaMatCxS_Enf)[,1], t(pcaMatCxS_Enf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+       xlab= paste("PCA1: ", round(summary(pcaCxS)$importance[2,1]*100,1),"%", sep=""), 
+       ylab=paste("PCA2: ", round(summary(pcaCxS)$importance[2,2]*100,1),"%",sep=""),
+       col= c("red"), ylim = range(t(pcaMatCxS)[,2]), xlim = range(t(pcaMatCxS)[,1])) 
+  
+  #ShchetxCheng:PCA con color
+  madSxC <- apply(normalizedSxC, 1, mad)
+  pcaSxC <- prcomp(normalizedSxC[order(madCxS, decreasing = T),]) #Datasets invertidos
+  
+  pcaMatSxC <- as.data.frame(t(pcaSxC$rotation)) 
+  pcaMatSxC_San <- pcaMatSxC %>% select(contains("S"))
+  pcaMatSxC_Enf <- pcaMatSxC %>% select(contains("E"))
+  
+  plot(t(pcaMatSxC_San)[,1], t(pcaMatSxC_San)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+       xlab= paste("PCA1: ", round(summary(pcaSxC)$importance[2,1]*100,1),"%", sep=""), 
+       ylab=paste("PCA2: ", round(summary(pcaSxC)$importance[2,2]*100,1),"%",sep=""),
+       col= c("green"), ylim = range(t(pcaMatSxC)[,2]), xlim = range(t(pcaMatSxC)[,1])) 
+  par(new=TRUE)
+  plot(t(pcaMatSxC_Enf)[,1], t(pcaMatSxC_Enf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+       xlab= paste("PCA1: ", round(summary(pcaSxC)$importance[2,1]*100,1),"%", sep=""), 
+       ylab=paste("PCA2: ", round(summary(pcaSxC)$importance[2,2]*100,1),"%",sep=""),
+       col= c("red"), ylim = range(t(pcaMatSxC)[,2]), xlim = range(t(pcaMatSxC)[,1])) 
   
 ##FUNCIONES
   
@@ -171,8 +215,8 @@ library("tidyverse")
        rownames(compareData) <- compareData[,1]
        compareData <- compareData[,-1]
        
-       normalizedCompare <- normalizeQuantiles(compareData + 1)
-       logCompare <- log2(normalizedCompare)
+       normalizedCheng <- normalizeQuantiles(emptyCheng[,-1])
+       logCheng <- log2(normalizedCheng + 1)
        plotDensities(logCompare, legend = "right", main = "Enfermos Artritis & Lupus")
        
        madCompare <- apply(normalizedCompare, 1, mad)
@@ -191,9 +235,9 @@ library("tidyverse")
       
       par(mfrow = c(2,2))
       
-      normalizedX <- normalizeQuantiles(x[,-1])
-      logX <- log2(normalizedX + 1)
-      plotDensities(logX, legend = "right", main = paste("Enfermos", deparse(substitute(x)), sep = " "))
+      logX <- log2(x[,-1] + 1)
+      normalizedX <- normalizeQuantiles(logX)
+      plotDensities(normalizedX, legend = "right", main = paste("FPKM", deparse(substitute(x)), sep = " "))
       
       madX <- apply(normalizedX, 1, mad)
       pcaX <- prcomp(normalizedX[order(madX, decreasing = T),])
@@ -211,8 +255,8 @@ library("tidyverse")
            xlab= paste("PCA1: ", round(summary(pcaX)$importance[2,1]*100,1),"%", sep=""), 
            ylab=paste("PCA2: ", round(summary(pcaX)$importance[2,2]*100,1),"%",sep=""),
            col= c("red"), ylim = range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1])) 
-      
     }
+    
     else if(compare == TRUE){
       par(mfrow = c(2,2))
       
@@ -220,9 +264,10 @@ library("tidyverse")
       rownames(compareData) <- compareData[,1]
       compareData <- compareData[,-1]
       
-      normalizedCompare <- normalizeQuantiles(compareData + 1)
-      logCompare <- log2(normalizedCompare)
-      plotDensities(logCompare, legend = "right", main = paste("Enfermos", deparse(substitute(x)), "&", deparse(substitute(...)), sep = " "))
+      
+      logCompare <- log2(compareData + 1)
+      normalizedCompare <- normalizeQuantiles(logCompare)
+      plotDensities(normalizedCompare, legend = "right", main = paste("FPKM", deparse(substitute(x)), "&", deparse(substitute(...)), sep = " "))
       
       madCompare <- apply(normalizedCompare, 1, mad)
       pcaCompare <- prcomp(normalizedCompare[order(madCompare, decreasing = T),])
