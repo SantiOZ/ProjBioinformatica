@@ -65,14 +65,10 @@ library("tidyverse")
   plotDensities(logShchet, legend = "right", main = "Enfermos Artitris")
   
   
-  #PCA Cheng: Grafico de densidades sin color
+  #PCA Cheng: Diferenciacion de columnas por figura
   madCheng <- apply(normalizedCheng, 1, mad)
   pcaCheng <- prcomp(normalizedCheng[order(madCheng, decreasing = T),])
-  plot(pcaCheng$rotation[,1], pcaCheng$rotation[,2],  main = "Cheng: PC1 vs PC2", 
-       xlab= paste("PCA1: ", round(summary(pcaCheng)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""))
-  
-  #PCA Cheng: Diferenciacion de columnas para añadir color
+ 
   pcaMat <- as.data.frame(t(pcaCheng$rotation)) 
   pcaMatSan <- pcaMat %>% select(contains("S"))
   pcaMatEnf <- pcaMat %>% select(contains("E"))
@@ -83,38 +79,13 @@ library("tidyverse")
   plot(t(pcaMatSan)[,1], t(pcaMatSan)[,2],  main = "Cheng: PC1 vs PC2", 
        xlab= paste("PCA1: ", round(summary(pcaCheng)$importance[2,1]*100,1),"%", sep=""), 
        ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""),
-       col= c("green"),  ylim =  rangePC2 <- range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]) ) 
+       pch = 1,  ylim =  rangePC2 <- range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]) ) 
   par(new=TRUE)
   plot(t(pcaMatEnf)[,1], t(pcaMatEnf)[,2],  main = "Cheng: PC1 vs PC2",
        xlab= paste("PCA1: ", round(summary(pcaCheng)$importance[2,1]*100,1),"%", sep=""), 
        ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""),
-       col= c("red"), ylim =  rangePC2 <- range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]))
-  
-  #PCA Shchet:Grafico de densidades sin color
-  madShchet <- apply(normalizedShchet, 1, mad)
-  pcaShchet <- prcomp(normalizedShchet[order(madShchet, decreasing = T),])
-  plot(pcaShchet$rotation[,1], pcaShchet$rotation[,2],  main = "Shchet: PC1 vs PC2", 
-       xlab= paste("PCA1: ", round(summary(pcaShchet)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaShchet)$importance[2,2]*100,1),"%",sep=""),
-       col= c("green", "red")) 
-  
-  #PCA Shchet: Diferenciacion de columnas para añadir color
-  pcaMat <- as.data.frame(t(pcaShchet$rotation)) 
-  pcaMatSan <- pcaMat %>% select(contains("S"))
-  pcaMatEnf <- pcaMat %>% select(contains("E"))
-  rangePC1 <- range(pcaMat[,1])
-  rangePC2 <- range(pcaMat[,2])
-  
-  
-  plot(t(pcaMatSan)[,1], t(pcaMatSan)[,2],  main = "Cheng: PC1 vs PC2", 
-       xlab= paste("PCA1: ", round(summary(pcaCheng)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""),
-       col= c("green"),  ylim =  rangePC2 <- range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]) ) 
-  par(new=TRUE)
-  plot(t(pcaMatEnf)[,1], t(pcaMatEnf)[,2],  main = "Cheng: PC1 vs PC2",
-       xlab= paste("PCA1: ", round(summary(pcaCheng)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""),
-       col= c("red"), ylim =  rangePC2 <- range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]))
+       pch = 8, ylim =  rangePC2 <- range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]))
+
   
   #Unión de dos datasets para comparación Cheng y Shchet
   compareCxS <- merge(emptyCheng[-1], emptyShchet[-1], by=0)
@@ -127,63 +98,8 @@ library("tidyverse")
   normalizedCxS <- normalizeQuantiles(logCxS)
   plotDensities(normalizedCxS, legend = "right", main = "Enfermos Artritis & Lupus")
   
-
-  #ChengxShchet:PCA con color
-  madCxS <- apply(normalizedCxS, 1, mad)
-  pcaCxS <- prcomp(normalizedCxS[order(madCxS, decreasing = T),]) #Datasets invertidos
-  
-  pcaMatCxS <- as.data.frame(t(pcaCxS$rotation)) 
-  pcaMatCxS_San <- pcaMatCxS %>% select(contains("S"))
-  pcaMatCxS_Enf <- pcaMatCxS %>% select(contains("E"))
-  
-  plot(t(pcaMatCxS_San)[,1], t(pcaMatCxS_San)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-       xlab= paste("PCA1: ", round(summary(pcaCxS)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCxS)$importance[2,2]*100,1),"%",sep=""),
-       pch = 1, ylim = range(t(pcaMatCxS)[,2]), xlim = range(t(pcaMatCxS)[,1])) 
-  par(new=TRUE)
-  plot(t(pcaMatCxS_Enf)[,1], t(pcaMatCxS_Enf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-       xlab= paste("PCA1: ", round(summary(pcaCxS)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCxS)$importance[2,2]*100,1),"%",sep=""),
-       pch = 8, ylim = range(t(pcaMatCxS)[,2]), xlim = range(t(pcaMatCxS)[,1])) 
-  
   
   #ChengxShchet: PCA diferenciado por figura y color
-  color <- c("red", "green", "cyan", "blue", "purple", "magenta", "yellow")
-  DataSets <- list(emptyCheng[-1], emptyShchet[-1])
-  NuDataSets <- length(DataSets)
-  
-  madCxS <- apply(normalizedCxS, 1, mad)
-  pcaCxS <- prcomp(normalizedCxS[order(madCxS, decreasing = T),]) #Datasets invertidos
-  
-  pcaMatCxS <- as.data.frame(t(pcaCxS$rotation)) 
-  pcaMatCxS_San <- pcaMatCxS[1:10] %>% select(contains("S"))
-  pcaMatCxS_Enf <- pcaMatCxS[1:10] %>% select(contains("E"))
-  
-  plot(t( pcaMatCxS_San)[,1], t( pcaMatCxS_San)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-       xlab= paste("PCA1: ", round(summary(pcaCxS)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCxS)$importance[2,2]*100,1),"%",sep=""),
-       pch = 1, col= c(color[1]), ylim = range(t(pcaMatCxS)[,2]), xlim = range(t(pcaMatCxS)[,1])) 
-  par(new=TRUE)
-  plot(t( pcaMatCxS_Enf)[,1], t( pcaMatCxS_Enf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-       xlab= paste("PCA1: ", round(summary(pcaCxS)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCxS)$importance[2,2]*100,1),"%",sep=""),
-       pch = 8, col= c(color[1]),  ylim = range(t(pcaMatCxS)[,2]), xlim = range(t(pcaMatCxS)[,1])) 
-  par(new=TRUE)
-  
-  pcaMatCxS_San <- pcaMatCxS[10:27] %>% select(contains("S"))
-  pcaMatCxS_Enf <- pcaMatCxS[10:27] %>% select(contains("E"))
-  
- 
-  plot(t( pcaMatCxS_San)[,1], t( pcaMatCxS_San)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-       xlab= paste("PCA1: ", round(summary(pcaCxS)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCxS)$importance[2,2]*100,1),"%",sep=""),
-       pch = 1, col= c(color[2]), ylim = range(t(pcaMatCxS)[,2]), xlim = range(t(pcaMatCxS)[,1])) 
-  par(new=TRUE)
-  plot(t( pcaMatCxS_Enf)[,1], t( pcaMatCxS_Enf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-       xlab= paste("PCA1: ", round(summary(pcaCxS)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaCxS)$importance[2,2]*100,1),"%",sep=""),
-       pch = 8, col= c(color[2]),  ylim = range(t(pcaMatCxS)[,2]), xlim = range(t(pcaMatCxS)[,1])) 
-  
   
   color <- c("red", "green", "cyan", "blue", "purple", "magenta", "yellow")
   inicio <- 1
@@ -221,89 +137,7 @@ library("tidyverse")
   
   
   
-  #Unión de dos datasets para comparación Shchet y Cheng
-  compareSxC <- merge(emptyShchet[-1], emptyCheng[-1], by=0)
-  rownames(compareSxC) <- compareSxC[,1]
-  compareSxC <- compareSxC[,-1]
-  
-  #ShchetxCheng: Normalizacion, logaritmo y grafico
-  logSxC <- log2(compareSxC + 1)
-  normalizedSxC <- normalizeQuantiles(logSxC)
-  plotDensities(normalizedSxC, legend = "right", main = "Enfermos Artritis & Lupus")
-  
-  #ShchetxCheng:PCA con color
-  madSxC <- apply(normalizedSxC, 1, mad)
-  pcaSxC <- prcomp(normalizedSxC[order(madCxS, decreasing = T),]) #Datasets invertidos
-  
-  pcaMatSxC <- as.data.frame(t(pcaSxC$rotation)) 
-  pcaMatSxC_San <- pcaMatSxC %>% select(contains("S"))
-  pcaMatSxC_Enf <- pcaMatSxC %>% select(contains("E"))
-  
-  plot(t(pcaMatSxC_San)[,1], t(pcaMatSxC_San)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-       xlab= paste("PCA1: ", round(summary(pcaSxC)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaSxC)$importance[2,2]*100,1),"%",sep=""),
-       pch = 1, ylim = range(t(pcaMatSxC)[,2]), xlim = range(t(pcaMatSxC)[,1])) 
-  par(new=TRUE)
-  plot(t(pcaMatSxC_Enf)[,1], t(pcaMatSxC_Enf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-       xlab= paste("PCA1: ", round(summary(pcaSxC)$importance[2,1]*100,1),"%", sep=""), 
-       ylab=paste("PCA2: ", round(summary(pcaSxC)$importance[2,2]*100,1),"%",sep=""),
-       pch = 8, ylim = range(t(pcaMatSxC)[,2]), xlim = range(t(pcaMatSxC)[,1])) 
-  
 ##FUNCIONES
-  
-  #Funcion global
-  RunPCA <- function(x, compare = FALSE){
-    if(compare == FALSE){
-      if (x == "cheng"){
-        par(mfrow = c(2,2))
-        
-        normalizedCheng <- normalizeQuantiles(emptyCheng[,-1])
-        logCheng <- log2(normalizedCheng + 1)
-        plotDensities(logCheng, legend = "right", main = "Enfermos Lupus")
-        
-        madCheng <- apply(normalizedCheng, 1, mad)
-        pcaCheng <- prcomp(normalizedCheng[order(madCheng, decreasing = T),])
-        plot(pcaCheng$rotation[,1], pcaCheng$rotation[,2],  main = "Cheng: PC1 vs PC2", 
-             xlab= paste("PCA1: ", round(summary(pcaCheng)$importance[2,1]*100,1),"%", sep=""), 
-             ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep="")) 
-        
-      }
-      else if (x == "shchet"){
-        par(mfrow = c(2,2))
-        
-        normalizedShchet <- normalizeQuantiles(emptyShchet[,-1] + 1)
-        logShchet <- log2(normalizedShchet)
-        plotDensities(logShchet, legend = "right", main = "Enfermos Artitris")
-        
-        madShchet <- apply(normalizedShchet, 1, mad)
-        pcaShchet <- prcomp(normalizedShchet[order(madShchet, decreasing = T),])
-        plot(pcaShchet$rotation[,1], pcaShchet$rotation[,2],  main = "Artritis: PC1 vs PC2", 
-             xlab= paste("PCA1: ", round(summary(pcaShchet)$importance[2,1]*100,1),"%", sep=""), 
-             ylab=paste("PCA2: ", round(summary(pcaShchet)$importance[2,2]*100,1),"%",sep="")) 
-      } 
-      else{
-        print("return monke")
-      }
-    }
-     else if(compare == TRUE){
-       par(mfrow = c(2,2))
-       
-       compareData <- merge(emptyCheng[-1], emptyShchet[-1], by=0)
-       rownames(compareData) <- compareData[,1]
-       compareData <- compareData[,-1]
-       
-       normalizedCheng <- normalizeQuantiles(emptyCheng[,-1])
-       logCheng <- log2(normalizedCheng + 1)
-       plotDensities(logCompare, legend = "right", main = "Enfermos Artritis & Lupus")
-       
-       madCompare <- apply(normalizedCompare, 1, mad)
-       pcaCompare <- prcomp(normalizedCompare[order(madCompare, decreasing = T),])
-       plot(pcaCompare$rotation[,1], pcaCompare$rotation[,2],  main = "Artritis & Lupus: PC1 vs PC2",
-            xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""), 
-            ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep="")) 
-     }
-    }
-  
   
   #Funcion global X
   RunPCAX <- function(x, compare = FALSE,...){
