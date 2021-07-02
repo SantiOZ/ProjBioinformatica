@@ -230,19 +230,23 @@ library("tidyverse")
     }
     
     else if(compare == TRUE){
-      #NuDataSets <- length(list(x, ...))
-      
-      color <- c("red", "green", "cyan", "blue", "purple", "magenta", "yellow")
-      inicio <- 1
-      DataSets <- list(emptyCheng[-1], emptyShchet[-1])
-      NuDataSets <- length(DataSets)
+      NuDatasets <- length(list(x, ...))
       
       par(mfrow = c(2,2))
       
-      compareData <- merge(x[-1], ...[-1], by=0)
-      rownames(compareData) <- compareData[,1]
-      compareData <- compareData[,-1]
+      DatasetVec <- vector()
+      for (i in 1:NuDatasets){
+        Datasets <- list(x, ...)
+        NormDatasets <- list(normalizeQuantiles(Datasets[[i]][-1]))
+        DatasetVec <- c(DatasetVec, NormDatasets[1])
+      }
       
+      compareData <- DatasetVec[1]
+      for (i in 2:NuDatasets){
+        compareData <- merge(compareData,DatasetVec[i], by=0)
+        rownames(compareData) <- compareData[,1]
+        compareData <- compareData[,-1]
+      }
       
       logCompare <- log2(compareData + 1)
       normalizedCompare <- normalizeQuantiles(logCompare)
@@ -251,27 +255,29 @@ library("tidyverse")
       madCompare <- apply(normalizedCompare, 1, mad)
       pcaCompare <- prcomp(normalizedCompare[order(madCompare, decreasing = T),])
       
-      pcaMatCom <- as.data.frame(t(pcaCompare$rotation)) 
+      pcaMatCom <- as.data.frame(t(pcaCompare$rotation))
       
-        for(i in 1:NuDataSets){
-          NuCol <- ncol(DataSets[[i]])
-          final <- NuCol + inicio
+      color <- c("red", "green", "cyan", "blue", "purple", "magenta", "yellow")
+      inicio <- 1
+      for(i in 1:NuDatasets){
+        NuCol <- ncol(DatasetVec[[i]])
+        final <- NuCol + inicio
         
-          pcaMatComSan <- pcaMatCom[inicio:final] %>% select(contains("S"))
-          pcaMatComEnf <- pcaMatCom[inicio:final] %>% select(contains("E"))
-          
-          plot(t(pcaMatComSan)[,1], t(pcaMatComSan)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-               xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""), 
-               ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
-               pch = 1, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1])) 
-          par(new=TRUE)
-          plot(t(pcaMatComEnf)[,1], t(pcaMatComEnf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-               xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""), 
-               ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
-               pch = 8, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1])) 
-          par(new=TRUE)
-          
-          inicio <- NuCol
-        }
+        pcaMatComSan <- pcaMatCom[inicio:final] %>% select(contains("S"))
+        pcaMatComEnf <- pcaMatCom[inicio:final] %>% select(contains("E"))
+        
+        plot(t(pcaMatComSan)[,1], t(pcaMatComSan)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+             xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
+             ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
+             pch = 1, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
+        par(new=TRUE)
+        plot(t(pcaMatComEnf)[,1], t(pcaMatComEnf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+             xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
+             ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
+             pch = 8, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
+        par(new=TRUE)
+        
+        inicio <- NuCol
+      }
     }
   }
