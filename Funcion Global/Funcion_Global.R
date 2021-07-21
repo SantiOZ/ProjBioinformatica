@@ -261,23 +261,28 @@ library("tidyverse")
       inicio <- 1
       for(i in 1:NuDatasets){
         NuCol <- ncol(DatasetVec[[i]])
-        final <- NuCol + inicio
-        
+        final <- NuCol + inicio - 1
+        print(inicio)
+        print(final)
         pcaMatComSan <- pcaMatCom[inicio:final] %>% select(contains("S"))
+        print(pcaMatComSan)
         pcaMatComEnf <- pcaMatCom[inicio:final] %>% select(contains("E"))
+        print(pcaMatComEnf)
         
         plot(t(pcaMatComSan)[,1], t(pcaMatComSan)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
              xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
              ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
              pch = 1, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
+        print(color[i])
         par(new=TRUE)
         plot(t(pcaMatComEnf)[,1], t(pcaMatComEnf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
              xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
              ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
              pch = 8, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
         par(new=TRUE)
+        print(color[i])
         
-        inicio <- NuCol
+        inicio <- NuCol + 1
       }
     }
   }
