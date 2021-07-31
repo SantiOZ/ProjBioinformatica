@@ -278,7 +278,7 @@ library("sva")
              pch = 8, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
         par(new=TRUE)
         
-        inicio <- NuCol + 1
+        inicio <- final + 1
       }
     }
   }
@@ -343,7 +343,7 @@ library("sva")
       ###
       inicio <- 1
       sc_mat_batch <- c()
-      for (i in 1:2){
+      for (i in 1:NuDatasets){
         NuCol <- ncol(DatasetVec[[i]])
         final <- NuCol + inicio - 1
         
@@ -356,11 +356,10 @@ library("sva")
       
       #Se introduce vector que define bathches
       modcombat <- model.matrix(~1, data=data.frame(cmb=sc_mat_batch))
-      sc_mat_combat <- ComBat(dat=normalizedCompare, batch=sc_mat_batch, mod=modcombat, par.prior=TRUE, prior.plots=FALSE)
+      sc_mat_combat <- ComBat(dat=normalizedCompare, batch=sc_mat_batch, mod=modcombat, par.prior=TRUE, prior.plots=FALSE) #causa problema
       sc_mat_combat_mad <- apply(sc_mat_combat, 1, mad)
       sc_mat_combat_pca <- prcomp(sc_mat_combat[order(sc_mat_combat_mad, decreasing = TRUE)[1:1000],])
       sc_mat_combat_mat<- as.data.frame(t(sc_mat_combat_pca$rotation)) 
-      
       ###
       
       
@@ -374,17 +373,17 @@ library("sva")
         pcaMatComEnf <- sc_mat_combat_mat[inicio:final] %>% select(contains("E"))
         
         plot(t(pcaMatComSan)[,1], t(pcaMatComSan)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-             xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
-             ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
+             xlab= paste("PCA1: ", round(summary(sc_mat_combat_pca)$importance[2,1]*100,1),"%", sep=""),
+             ylab=paste("PCA2: ", round(summary(sc_mat_combat_pca)$importance[2,2]*100,1),"%",sep=""),
              pch = 1, col= c(color[i]), ylim = range(t(sc_mat_combat_mat)[,2]), xlim = range(t(sc_mat_combat_mat)[,1]))
         par(new=TRUE)
         plot(t(pcaMatComEnf)[,1], t(pcaMatComEnf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
-             xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
-             ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
+             xlab= paste("PCA1: ", round(summary(sc_mat_combat_pca)$importance[2,1]*100,1),"%", sep=""),
+             ylab=paste("PCA2: ", round(summary(sc_mat_combat_pca)$importance[2,2]*100,1),"%",sep=""),
              pch = 8, col= c(color[i]), ylim = range(t(sc_mat_combat_mat)[,2]), xlim = range(t(sc_mat_combat_mat)[,1]))
         par(new=TRUE)
         
-        inicio <- NuCol + 1
+        inicio <- final + 1
       }
     }
   }
