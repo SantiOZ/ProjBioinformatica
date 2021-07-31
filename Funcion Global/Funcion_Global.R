@@ -356,7 +356,7 @@ library("sva")
       
       #Se introduce vector que define bathches
       modcombat <- model.matrix(~1, data=data.frame(cmb=sc_mat_batch))
-      sc_mat_combat <- ComBat(dat=normalizedCompare, batch=sc_mat_batch, mod=modcombat, par.prior=TRUE, prior.plots=FALSE) #causa problema
+      sc_mat_combat <- ComBat(dat=normalizedCompare, batch=sc_mat_batch, mod=modcombat, par.prior=TRUE, prior.plots=FALSE)
       sc_mat_combat_mad <- apply(sc_mat_combat, 1, mad)
       sc_mat_combat_pca <- prcomp(sc_mat_combat[order(sc_mat_combat_mad, decreasing = TRUE)[1:1000],])
       sc_mat_combat_mat<- as.data.frame(t(sc_mat_combat_pca$rotation)) 
