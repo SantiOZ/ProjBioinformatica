@@ -2,6 +2,7 @@ library("rtracklayer")
 library("dplyr")
 library("limma")
 library("tidyverse")
+library("sva")
 
 #pipeline para analisis por separado
 #-normalizar
@@ -107,7 +108,7 @@ library("tidyverse")
   NuDataSets <- length(DataSets)
   
   madCxS <- apply(normalizedCxS, 1, mad)
-  pcaCxS <- prcomp(normalizedCxS[order(madCxS, decreasing = T),]) #Datasets invertidos
+  pcaCxS <- prcomp(normalizedCxS[order(madCxS, decreasing = T)[1:1000],]) #Datasets invertidos
   pcaMatCxS <- as.data.frame(t(pcaCxS$rotation)) 
   
   
@@ -281,3 +282,110 @@ library("tidyverse")
       }
     }
   }
+
+  
+  #Funcion global z
+  RunPCAZ <- function(x, compare = FALSE,...){
+    if(compare == FALSE){
+      
+      par(mfrow = c(2,2))
+      
+      logX <- log2(x[,-1] + 1)
+      normalizedX <- normalizeQuantiles(logX)
+      plotDensities(normalizedX, legend = "right", main = paste("FPKM", deparse(substitute(x)), sep = " "))
+      
+      madX <- apply(normalizedX, 1, mad)
+      pcaX <- prcomp(normalizedX[order(madX, decreasing = T),])
+      
+      pcaMat <- as.data.frame(t(pcaX$rotation)) 
+      pcaMatSan <- pcaMat %>% select(contains("S"))
+      pcaMatEnf <- pcaMat %>% select(contains("E"))
+      
+      plot(t(pcaMatSan)[,1], t(pcaMatSan)[,2],  main = paste(deparse(substitute(x)), ": PC1 vs PC2", sep = " "), 
+           xlab= paste("PCA1: ", round(summary(pcaX)$importance[2,1]*100,1),"%", sep=""), 
+           ylab=paste("PCA2: ", round(summary(pcaX)$importance[2,2]*100,1),"%",sep=""),
+           pch = 1,  ylim = range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]) ) 
+      par(new=TRUE)
+      plot(t(pcaMatEnf)[,1], t(pcaMatEnf)[,2],  main = paste(deparse(substitute(x)), ": PC1 vs PC2", sep = " "),
+           xlab= paste("PCA1: ", round(summary(pcaX)$importance[2,1]*100,1),"%", sep=""), 
+           ylab=paste("PCA2: ", round(summary(pcaX)$importance[2,2]*100,1),"%",sep=""),
+           pch = 8, ylim = range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1])) 
+    }
+    
+    else if(compare == TRUE){
+      NuDatasets <- length(list(x, ...))
+      
+      par(mfrow = c(2,2))
+      
+      DatasetVec <- vector()
+      for (i in 1:NuDatasets){
+        Datasets <- list(x, ...)
+        NormDatasets <- list(normalizeQuantiles(Datasets[[i]][-1]))
+        DatasetVec <- c(DatasetVec, NormDatasets[1])
+      }
+      
+      compareData <- DatasetVec[1]
+      for (i in 2:NuDatasets){
+        compareData <- merge(compareData,DatasetVec[i], by=0)
+        rownames(compareData) <- compareData[,1]
+        compareData <- compareData[,-1]
+      }
+      
+      logCompare <- log2(compareData + 1)
+      normalizedCompare <- normalizeQuantiles(logCompare)
+      plotDensities(normalizedCompare, legend = "right", main = paste("FPKM", deparse(substitute(x)), "&", deparse(substitute(...)), sep = " "))
+      
+      madCompare <- apply(normalizedCompare, 1, mad)
+      pcaCompare <- prcomp(normalizedCompare[order(madCompare, decreasing = T),])
+      
+      pcaMatCom <- as.data.frame(t(pcaCompare$rotation))
+      
+      ###
+      inicio <- 1
+      sc_mat_batch <- c()
+      for (i in 1:2){
+        NuCol <- ncol(DatasetVec[[i]])
+        final <- NuCol + inicio - 1
+        
+        cutData <- normalizedCompare[inicio:final]
+        
+        sc_mat_batch <- c(sc_mat_batch, rep(i, ncol(cutData)))
+        
+        inicio <- NuCol + 1
+      }
+      
+      #Se introduce vector que define bathches
+      modcombat <- model.matrix(~1, data=data.frame(cmb=sc_mat_batch))
+      sc_mat_combat <- ComBat(dat=normalizedCompare, batch=sc_mat_batch, mod=modcombat, par.prior=TRUE, prior.plots=FALSE)
+      sc_mat_combat_mad <- apply(sc_mat_combat, 1, mad)
+      sc_mat_combat_pca <- prcomp(sc_mat_combat[order(sc_mat_combat_mad, decreasing = TRUE)[1:1000],])
+      sc_mat_combat_mat<- as.data.frame(t(sc_mat_combat_pca$rotation)) 
+      
+      ###
+      
+      
+      color <- c("red", "green", "cyan", "blue", "purple", "magenta", "yellow")
+      inicio <- 1
+      for(i in 1:NuDatasets){
+        NuCol <- ncol(DatasetVec[[i]])
+        final <- NuCol + inicio - 1
+        
+        pcaMatComSan <- sc_mat_combat_mat[inicio:final] %>% select(contains("S"))
+        pcaMatComEnf <- sc_mat_combat_mat[inicio:final] %>% select(contains("E"))
+        
+        plot(t(pcaMatComSan)[,1], t(pcaMatComSan)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+             xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
+             ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
+             pch = 1, col= c(color[i]), ylim = range(t(sc_mat_combat_mat)[,2]), xlim = range(t(sc_mat_combat_mat)[,1]))
+        par(new=TRUE)
+        plot(t(pcaMatComEnf)[,1], t(pcaMatComEnf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+             xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
+             ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
+             pch = 8, col= c(color[i]), ylim = range(t(sc_mat_combat_mat)[,2]), xlim = range(t(sc_mat_combat_mat)[,1]))
+        par(new=TRUE)
+        
+        inicio <- NuCol + 1
+      }
+    }
+  }
+  
