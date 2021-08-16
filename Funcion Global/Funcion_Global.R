@@ -200,6 +200,28 @@ library("readr")
   
 ##FUNCIONES
   
+  #Funcion para normalizar dependiendo de conteos o fpkm
+  getNormalizedMatrix <- function(count_mat){
+    if(all(apply(count_mat,2,is.integer), na.rm = FALSE) ){
+      samples_classA = count_mat %>% select(contains("S"))
+      samples_classB = count_mat %>% select(contains("E"))
+      aux_data <- count_mat
+      aux_desc <- data.frame(condition=c(rep("Sanos",length(samples_classA)),rep("Enfermos",length(samples_classB))), type=rep("paired-end",c(length(samples_classA)+length(samples_classB))))
+      aux_dds <- DESeqDataSetFromMatrix(countData = aux_data, colData = aux_desc, design = ~condition)
+      aux_dds <- DESeq(aux_dds)
+      normalized_counts <- counts(aux_dds, normalized=T)
+      log_counts <- log2(normalized_counts + 1)
+      return(norm_counts=log_counts)
+    }
+    else{
+      logX <- log2(count_mat + 1)
+      normalizeQuantiles(logX)
+    }
+  }
+  
+  
+  
+  
   #Funcion global X
   RunPCAX <- function(x, compare = FALSE,...){
     if(compare == FALSE){
@@ -350,8 +372,7 @@ library("readr")
       
       par(mfrow = c(2,2))
       
-      logX <- log2(x[,-1] + 1)
-      normalizedX <- normalizeQuantiles(logX)
+      normalizedX <- getNormalizedMatrix(x[,-1])
       plotDensities(normalizedX, legend = "right", main = paste("FPKM", deparse(substitute(x)), sep = " "))
       
       madX <- apply(normalizedX, 1, mad)
