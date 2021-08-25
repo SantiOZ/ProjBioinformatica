@@ -211,7 +211,7 @@ library("readr")
       aux_dds <- DESeq(aux_dds)
       normalized_counts <- counts(aux_dds, normalized=T)
       log_counts <- log2(normalized_counts + 1)
-      return(norm_counts=log_counts)
+      return(log_counts)
     }
     else{
       logX <- log2(count_mat + 1)
@@ -401,7 +401,7 @@ library("readr")
       DatasetVec <- vector()
       for (i in 1:NuDatasets){
         Datasets <- list(x, ...)
-        NormDatasets <- list(normalizeQuantiles(Datasets[[i]][-1]))
+        NormDatasets <- list(getNormalizedMatrix(Datasets[[i]][-1]))
         DatasetVec <- c(DatasetVec, NormDatasets[1])
       }
       
@@ -412,8 +412,7 @@ library("readr")
         compareData <- compareData[,-1]
       }
       
-      logCompare <- log2(compareData + 1)
-      normalizedCompare <- normalizeQuantiles(logCompare)
+      normalizedCompare <- normalizeQuantiles(compareData)
       plotDensities(normalizedCompare, legend = "right", main = paste("FPKM", deparse(substitute(x)), "&", deparse(substitute(...)), sep = " "))
       
       madCompare <- apply(normalizedCompare, 1, mad)
