@@ -135,12 +135,27 @@ library("readr")
   pcaMatEnf <- pcaMat %>% select(contains("E"))
   rangePC1 <- range(pcaMat[,1])
   rangePC2 <- range(pcaMat[,2])
-  
+  DT_Names<-colnames(pcaMatSan[1])
+  print(substr(DT_Names, 1, 2))
+  print(substr(colnames(pcaMatSan[1]), 1, 2))
+  colnames(model$data[[1]])
   
   plot(t(pcaMatSan)[,1], t(pcaMatSan)[,2],  main = "Cheng: PC1 vs PC2", 
        xlab= paste("PCA1: ", round(summary(pcaCheng)$importance[2,1]*100,1),"%", sep=""), 
        ylab=paste("PCA2: ", round(summary(pcaCheng)$importance[2,2]*100,1),"%",sep=""),
        pch = 1,  ylim =  rangePC2 <- range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]) ) 
+  par(xpd=TRUE)
+  legend("bottomright", 
+         legend = c(substr(colnames(pcaMatSan[1]), 1, 2), substr(colnames(pcaMatEnf[1]), 1, 2)), 
+         col = c("red", 
+                 "red"), 
+         pch = c(16,4), 
+         bty = "n", 
+         pt.cex = 2, 
+         cex = 1.2, 
+         text.col = "black", 
+         horiz = F , 
+         inset = c(0, 0))
   par(new=TRUE)
   plot(t(pcaMatEnf)[,1], t(pcaMatEnf)[,2],  main = "Cheng: PC1 vs PC2",
        xlab= paste("PCA1: ", round(summary(pcaCheng)$importance[2,1]*100,1),"%", sep=""), 
@@ -275,11 +290,13 @@ library("readr")
            xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""), 
            ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
            col= c("green"), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1])) 
+            
       par(new=TRUE)
       plot(t(pcaMatComEnf)[,1], t(pcaMatComEnf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
            xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""), 
            ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
            col= c("red"), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1])) 
+      
     }
   }
 
@@ -342,6 +359,7 @@ library("readr")
       
       color <- c("red", "green", "cyan", "blue", "purple", "magenta", "yellow")
       inicio <- 1
+      insety <- 0.4
       for(i in 1:NuDatasets){
         NuCol <- ncol(DatasetVec[[i]])
         final <- NuCol + inicio - 1
@@ -352,12 +370,25 @@ library("readr")
         plot(t(pcaMatComSan)[,1], t(pcaMatComSan)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
              xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
              ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
-             pch = 1, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
+             pch = 16, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
         par(new=TRUE)
         plot(t(pcaMatComEnf)[,1], t(pcaMatComEnf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
              xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
              ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
-             pch = 8, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
+             pch = 4, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
+        
+        legend("bottomright",
+               legend = c("SL", "EL"), 
+               col = c(color[i], 
+                       color[i]), 
+               pch = c(16,4), 
+               bty = "n", 
+               pt.cex = 1, 
+               cex = 1, 
+               text.col = "black", 
+               horiz = F,
+               inset = c(0.0, insety))
+        insety <- insety - 0.4
         par(new=TRUE)
         
         inicio <- final + 1
@@ -385,12 +416,12 @@ library("readr")
       plot(t(pcaMatSan)[,1], t(pcaMatSan)[,2],  main = paste(deparse(substitute(x)), ": PC1 vs PC2", sep = " "), 
            xlab= paste("PCA1: ", round(summary(pcaX)$importance[2,1]*100,1),"%", sep=""), 
            ylab=paste("PCA2: ", round(summary(pcaX)$importance[2,2]*100,1),"%",sep=""),
-           pch = 1,  ylim = range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]) ) 
+           pch = 16,  ylim = range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1]) ) 
       par(new=TRUE)
       plot(t(pcaMatEnf)[,1], t(pcaMatEnf)[,2],  main = paste(deparse(substitute(x)), ": PC1 vs PC2", sep = " "),
            xlab= paste("PCA1: ", round(summary(pcaX)$importance[2,1]*100,1),"%", sep=""), 
            ylab=paste("PCA2: ", round(summary(pcaX)$importance[2,2]*100,1),"%",sep=""),
-           pch = 8, ylim = range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1])) 
+           pch = 4, ylim = range(t(pcaMat)[,2]), xlim = range(t(pcaMat)[,1])) 
     }
     
     else if(compare == TRUE){
@@ -434,6 +465,46 @@ library("readr")
         inicio <- NuCol + 1
       }
       
+      
+      color <- c("red", "green", "cyan", "blue", "purple", "magenta", "yellow")
+      inicio <- 1
+      insety <- 0.7
+      for(i in 1:NuDatasets){
+        NuCol <- ncol(DatasetVec[[i]])
+        final <- NuCol + inicio - 1
+        
+        pcaMatComSan <- pcaMatCom[inicio:final] %>% select(contains("S"))
+        pcaMatComEnf <- pcaMatCom[inicio:final] %>% select(contains("E"))
+        
+        plot(t(pcaMatComSan)[,1], t(pcaMatComSan)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+             xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
+             ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
+             pch = 16, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
+        par(new=TRUE)
+        plot(t(pcaMatComEnf)[,1], t(pcaMatComEnf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
+             xlab= paste("PCA1: ", round(summary(pcaCompare)$importance[2,1]*100,1),"%", sep=""),
+             ylab=paste("PCA2: ", round(summary(pcaCompare)$importance[2,2]*100,1),"%",sep=""),
+             pch = 4, col= c(color[i]), ylim = range(t(pcaMatCom)[,2]), xlim = range(t(pcaMatCom)[,1]))
+        par(xpd=TRUE)
+        legend("bottomright",
+               legend = c(substr(colnames(pcaMatComSan[1]), 1, 2),substr(colnames(pcaMatComEnf[1]), 1, 2)), 
+               col = c(color[i], 
+                       color[i]), 
+               pch = c(16,4), 
+               bty = "n", 
+               pt.cex = 0.8, 
+               cex = 0.8, 
+               text.col = "black", 
+               horiz = F,
+               inset = c(-0.12, insety))
+        insety <- insety - 0.3
+        par(new=TRUE)
+        
+        inicio <- final + 1
+      }
+      
+      
+      
       #Se introduce vector que define bathches
       modcombat <- model.matrix(~1, data=data.frame(cmb=sc_mat_batch))
       sc_mat_combat <- ComBat(dat=normalizedCompare, batch=sc_mat_batch, mod=modcombat, par.prior=TRUE, prior.plots=FALSE)
@@ -442,9 +513,9 @@ library("readr")
       sc_mat_combat_mat<- as.data.frame(t(sc_mat_combat_pca$rotation)) 
       ###
       
-      
-      color <- c("red", "green", "cyan", "blue", "purple", "magenta", "yellow")
+      par(new=FALSE)
       inicio <- 1
+      insety <- 0.7
       for(i in 1:NuDatasets){
         NuCol <- ncol(DatasetVec[[i]])
         final <- NuCol + inicio - 1
@@ -455,12 +526,25 @@ library("readr")
         plot(t(pcaMatComSan)[,1], t(pcaMatComSan)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
              xlab= paste("PCA1: ", round(summary(sc_mat_combat_pca)$importance[2,1]*100,1),"%", sep=""),
              ylab=paste("PCA2: ", round(summary(sc_mat_combat_pca)$importance[2,2]*100,1),"%",sep=""),
-             pch = 1, col= c(color[i]), ylim = range(t(sc_mat_combat_mat)[,2]), xlim = range(t(sc_mat_combat_mat)[,1]))
+             pch = 16, col= c(color[i]), ylim = range(t(sc_mat_combat_mat)[,2]), xlim = range(t(sc_mat_combat_mat)[,1]))
         par(new=TRUE)
         plot(t(pcaMatComEnf)[,1], t(pcaMatComEnf)[,2],  main = paste(deparse(substitute(x)), "&", deparse(substitute(...)),": PC1 vs PC2",sep = " "),
              xlab= paste("PCA1: ", round(summary(sc_mat_combat_pca)$importance[2,1]*100,1),"%", sep=""),
              ylab=paste("PCA2: ", round(summary(sc_mat_combat_pca)$importance[2,2]*100,1),"%",sep=""),
-             pch = 8, col= c(color[i]), ylim = range(t(sc_mat_combat_mat)[,2]), xlim = range(t(sc_mat_combat_mat)[,1]))
+             pch = 4, col= c(color[i]), ylim = range(t(sc_mat_combat_mat)[,2]), xlim = range(t(sc_mat_combat_mat)[,1]))
+        #par(xpd=TRUE)
+        legend("bottomright",
+               legend = c(substr(colnames(pcaMatComSan[1]), 1, 2),substr(colnames(pcaMatComEnf[1]), 1, 2)), 
+               col = c(color[i], 
+                       color[i]), 
+               pch = c(16,4), 
+               bty = "n", 
+               pt.cex = 0.8, 
+               cex = 0.8, 
+               text.col = "black", 
+               horiz = F,
+               inset = c(-0.12, insety))
+        insety <- insety - 0.3
         par(new=TRUE)
         
         inicio <- final + 1
