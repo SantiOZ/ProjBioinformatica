@@ -98,7 +98,7 @@ emptyShchet <- Shchetynsky[-which(apply(Shchetynsky[,-1], 1, mean) == 0),]
 emptyMo <- Mo[-which(apply(Mo[,-1], 1, mean) == 0),]
 emptyMo_Crohn <- Mo_Crohn[-which(apply(Mo_Crohn[,-1], 1, mean) == 0),]
 emptyMo_OligoJIA <- Mo_OligoJIA[-which(apply(Mo_OligoJIA[,-1], 1, mean) == 0),]
-emptyMo_PolyJIA <- Mo_PolyJIA[-whic(apply(Mo_PolyJIA[,-1], 1, mean) == 0),]
+emptyMo_PolyJIA <- Mo_PolyJIA[-which(apply(Mo_PolyJIA[,-1], 1, mean) == 0),]
 emptyMo_SystJIA <- Mo_SystJIA[-which(apply(Mo_SystJIA[,-1], 1, mean) == 0),]
 emptyMo_Ulc_Col <- Mo_Ulc_Col[-which(apply(Mo_Ulc_Col[,-1], 1, mean) == 0),]
 
