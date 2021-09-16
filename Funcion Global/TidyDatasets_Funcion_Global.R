@@ -1,5 +1,7 @@
 
 #PREPARACION PREVIA DE DATASETS 
+library("dplyr")
+
 
 #Opening datasets
 Shchetynsky <- read.table("C:/Users/tt_kb/Documents/Bioinformatica/Art_Shitinksy/Art.txt", header = TRUE)
@@ -49,6 +51,7 @@ rownames(Mo) <- geneIDMo
 Control_Mo <- Mo[grep("Control", MoSM[1,-1])]
 colnames(Control_Mo) <- c("SM1", "SM2", "SM3", "SM4", "SM5", "SM6", "SM7", "SM8", "SM9", "SM10", "SM11", "SM12")
 
+
 Crohn <- Mo[,grep("Crohn", MoSM[1,-1])]
 colnames(Crohn) <- c("EC1", "EC2",	"EC3","EC4","EC5","EC6","EC7","EC8","EC9","EC10","EC11","EC12",	"EC13",	"EC14",	
                      "EC15","EC16","EC17","EC18",	"EC19","EC20","EC21","EC22","EC23","EC24","EC25","EC26","EC27",
@@ -56,17 +59,16 @@ colnames(Crohn) <- c("EC1", "EC2",	"EC3","EC4","EC5","EC6","EC7","EC8","EC9","EC
                      "EC41",	"EC42","EC43","EC44","EC45","EC46","EC47","EC48", "EC49","EC50","EC51","EC52","EC53",
                      "EC54",	"EC55",	"EC56",	"EC57",	"EC58",	"EC59",	"EC60")
 
-
 OligoJIA <- Mo[grep("Oligoarticular", MoSM[1,-1])]
 colnames(OligoJIA) <- c("EO1",	"EO2",	"EO3",	"EO4",	"EO5",	"EO6",	"EO7",	"EO8",	"EO9",	"EO10",	"EO11",	"EO12",	
                         "EO13",	"EO14",	"EO15",	"EO16",	"EO17",	"EO18",	"EO19",	"EO20",	"EO21",	"EO22",	"EO23",	"EO24",	
                         "EO25",	"EO26",	"EO27",	"EO28",	"EO29",	"EO30",	"EO31",	"EO32",	"EO33",	"EO34",	"EO35",	"EO36",	
                         "EO37",	"EO38",	"EO39",	"EO40",	"EO41",	"EO42",	"EO43")
 
+
 Ulc_Col <- Mo[grep("Colitis", MoSM[1,-1])]
 colnames(Ulc_Col) <- c("EU1",	"EU2",	"EU3",	"EU4",	"EU5",	"EU6",	"EU7",	"EU8",	"EU9",	"EU10",	"EU11",	"EU12",	
                        "EU13",	"EU14",	"EU15")
-
 
 PolyJIA<- Mo[grep("Polyarticular", MoSM[1,-1])]
 colnames(PolyJIA) <- c("EP1",	"EP2",	"EP3",	"EP4",	"EP5",	"EP6",	"EP7",	"EP8",	"EP9",	"EP10",	"EP11",	"EP12",	
@@ -75,24 +77,28 @@ colnames(PolyJIA) <- c("EP1",	"EP2",	"EP3",	"EP4",	"EP5",	"EP6",	"EP7",	"EP8",	"
                        "EP37",	"EP38",	"EP39",	"EP40",	"EP41",	"EP42",	"EP43",	"EP44",	"EP45",	"EP46")
 
 SystJIA<- Mo[grep("Systemic", MoSM[1,-1])]
-colnames(SystJIA) <- c("ES1",	"ES2",	"ES3",	"ES4",	"ES5",	"ES6",	"ES7",	"ES8",	"ES9",	"ES10",	"ES11",	"ES12",	
-                       "ES13",	"ES14",	"ES15",	"E2S16",	"ES17",	"ES18",	"ES19",	"ES20",	"ES21",	"ES22",	"ES23",	"ES24",	
-                       "ES25",	"ES26")
+colnames(SystJIA) <- c("EZ1",	"EZ2",	"EZ3",	"EZ4",	"EZ5",	"EZ6",	"EZ7",	"EZ8",	"EZ9",	"EZ10",	"EZ11",	"EZ12",	
+                       "EZ13",	"EZ14",	"EZ15",	"EZ16",	"EZ17",	"EZ18",	"EZ19",	"EZ20",	"EZ21",	"EZ22",	"EZ23",	"EZ24",	
+                       "EZ25",	"EZ26")
 
 #Agregar columna de gene names
 Cheng <- cbind(geneNamesCheng,Cheng)
 Shchetynsky <- cbind(geneNamesShchet, uniqueShchet)
+Mo <- cbind(geneNamesMo, Control_Mo, Crohn, OligoJIA, PolyJIA, SystJIA, Ulc_Col)
 Mo_Crohn <- cbind(geneNamesMo, Control_Mo, Crohn)
 Mo_OligoJIA <- cbind(geneNamesMo, Control_Mo, OligoJIA)
 Mo_PolyJIA <- cbind(geneNamesMo, Control_Mo, PolyJIA)
 Mo_SystJIA <- cbind(geneNamesMo, Control_Mo, SystJIA)
 Mo_Ulc_Col <- cbind(geneNamesMo, Control_Mo, Ulc_Col)
 
+
 #Quitando ceros
 emptyCheng <- Cheng[-which(apply(Cheng[,-1], 1, mean) == 0),]
 emptyShchet <- Shchetynsky[-which(apply(Shchetynsky[,-1], 1, mean) == 0),]
+emptyMo <- Mo[-which(apply(Mo[,-1], 1, mean) == 0),]
 emptyMo_Crohn <- Mo_Crohn[-which(apply(Mo_Crohn[,-1], 1, mean) == 0),]
 emptyMo_OligoJIA <- Mo_OligoJIA[-which(apply(Mo_OligoJIA[,-1], 1, mean) == 0),]
-emptyMo_PolyJIA <- Mo_PolyJIA[-which(apply(Mo_PolyJIA[,-1], 1, mean) == 0),]
+emptyMo_PolyJIA <- Mo_PolyJIA[-whic(apply(Mo_PolyJIA[,-1], 1, mean) == 0),]
 emptyMo_SystJIA <- Mo_SystJIA[-which(apply(Mo_SystJIA[,-1], 1, mean) == 0),]
 emptyMo_Ulc_Col <- Mo_Ulc_Col[-which(apply(Mo_Ulc_Col[,-1], 1, mean) == 0),]
+
