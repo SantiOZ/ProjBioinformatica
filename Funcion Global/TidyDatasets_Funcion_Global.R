@@ -1,3 +1,8 @@
+#datasets
+#-artritis Schetynsky
+#-lupus Cheng
+#-crohn Mo
+#-myositis Parkes
 
 #PREPARACION PREVIA DE DATASETS 
 library("dplyr")
@@ -21,6 +26,22 @@ uniqueMo <- orderMo[!duplicated(orderMo[,1]),]
 rownames(uniqueMo) <- uniqueMo[,1]
 Mo <- uniqueMo[,-1]
 
+ParkesDM <- read.csv("C:/Users/tt_kb/Documents/Bioinformatica/Myositis_Parkes/Dermatomyositis.csv", header = TRUE)
+reducedID_DM <- substring(ParkesDM[,1],1,15)
+ParkesDM <- ParkesDM[,-1]
+rownames(ParkesDM) <- reducedID_DM
+
+ParkesIBM <- read.csv("C:/Users/tt_kb/Documents/Bioinformatica/Myositis_Parkes/Inclusion_Body_Myositis.csv", header =  TRUE)
+reducedID_IBM <- substring(ParkesIBM[,1],1,15)
+ParkesIBM <- ParkesIBM[,-1]
+rownames(ParkesIBM) <- reducedID_IBM
+
+ParkesPM <- read.csv("C:/Users/tt_kb/Documents/Bioinformatica/Myositis_Parkes/Polymyositis.csv", header =  TRUE)
+reducedID_PM <- substring(ParkesPM[,1],1,15)
+ParkesPM <- ParkesPM[,-1]
+rownames(ParkesPM) <- reducedID_PM
+
+
 #Opening index 38.98 GTF file
 index <- as.data.frame(rtracklayer::import('C:/Users/tt_kb/Documents/Bioinformatica/Index.gtf'))
 
@@ -34,17 +55,33 @@ Shchet_match_clean <- Shchet_match[!is.na(Shchet_match)]
 Mo_match <- match(rownames(Mo), index$gene_name)
 Mo_match_clean <- Mo_match[!is.na(Mo_match)]
 
+ParkesDM_match <- match(rownames(ParkesDM), index$gene_id)
+ParkesDM_match_clean <- ParkesDM_match[!is.na(ParkesDM_match)]
+
+ParkesIBM_match <- match(rownames(ParkesIBM), index$gene_id)
+ParkesIBM_match_clean <- ParkesIBM_match[!is.na(ParkesIBM_match)]
+
+ParkesPM_match <- match(rownames(ParkesPM), index$gene_id)
+ParkesPM_match_clean <- ParkesPM_match[!is.na(ParkesPM_match)]
+
+
 #Obtener nombres a partir de gene id
 geneNamesCheng <- index$gene_name[Cheng_match_clean]
 geneNamesShchet <- index$gene_name[Shchet_match_clean]
 geneNamesMo <- index$gene_name[Mo_match_clean]
 geneIDMo <- index$gene_id[Mo_match_clean]
+geneNamesParkesDM <- index$gene_name[ParkesDM_match_clean]
+geneNamesParkesIBM <- index$gene_name[ParkesIBM_match_clean]
+geneNamesParkesPM <- index$gene_name[ParkesPM_match_clean]
 
 #Eliminar filas sin match con index en dataset original
-Cheng <- Cheng[!is.na(Cheng_match),]
-uniqueShchet <- uniqueShchet[!is.na(Shchet_match),]
+Cheng <- Cheng[!is.na(Cheng_match),] 
+uniqueShchet <- uniqueShchet[!is.na(Shchet_match),] 
 Mo <- Mo[!is.na(Mo_match),]
 rownames(Mo) <- geneIDMo
+ParkesDM <- ParkesDM[!is.na(ParkesDM_match),]
+ParkesIBM <- ParkesIBM[!is.na(ParkesIBM_match),]
+ParkesPM <- ParkesPM[!is.na(ParkesPM_match),]
 
 #Separar dataset de Mo en grupos de enfermedades
 
@@ -84,12 +121,16 @@ colnames(SystJIA) <- c("EZ1",	"EZ2",	"EZ3",	"EZ4",	"EZ5",	"EZ6",	"EZ7",	"EZ8",	"
 #Agregar columna de gene names
 Cheng <- cbind(geneNamesCheng,Cheng)
 Shchetynsky <- cbind(geneNamesShchet, uniqueShchet)
-Mo <- cbind(geneNamesMo, Control_Mo, Crohn, OligoJIA, PolyJIA, SystJIA, Ulc_Col)
+#Mo <- cbind(geneNamesMo, Control_Mo, Crohn, OligoJIA, PolyJIA, SystJIA, Ulc_Col)
+Mo <- cbind(geneNamesMo, Control_Mo, SystJIA, Ulc_Col)
 Mo_Crohn <- cbind(geneNamesMo, Control_Mo, Crohn)
 Mo_OligoJIA <- cbind(geneNamesMo, Control_Mo, OligoJIA)
 Mo_PolyJIA <- cbind(geneNamesMo, Control_Mo, PolyJIA)
-Mo_SystJIA <- cbind(geneNamesMo, Control_Mo, SystJIA)
-Mo_Ulc_Col <- cbind(geneNamesMo, Control_Mo, Ulc_Col)
+Mo_SystJIA <- cbind(geneNamesMo, Control_Mo[,1:6], SystJIA)
+Mo_Ulc_Col <- cbind(geneNamesMo, Control_Mo[,7:12], Ulc_Col)
+ParkesDM <- cbind(geneNamesParkesDM, ParkesDM)
+ParkesIBM <- cbind(geneNamesParkesIBM, ParkesIBM)
+ParkesPM <- cbind(geneNamesParkesPM, ParkesPM)
 
 
 #Quitando ceros
@@ -101,4 +142,4 @@ emptyMo_OligoJIA <- Mo_OligoJIA[-which(apply(Mo_OligoJIA[,-1], 1, mean) == 0),]
 emptyMo_PolyJIA <- Mo_PolyJIA[-which(apply(Mo_PolyJIA[,-1], 1, mean) == 0),]
 emptyMo_SystJIA <- Mo_SystJIA[-which(apply(Mo_SystJIA[,-1], 1, mean) == 0),]
 emptyMo_Ulc_Col <- Mo_Ulc_Col[-which(apply(Mo_Ulc_Col[,-1], 1, mean) == 0),]
-
+#emptyParkesDM <- ParkesDM[-which(apply(ParkesDM[,-1], 1, mean) == 0),]
