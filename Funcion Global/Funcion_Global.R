@@ -4,6 +4,7 @@ library("limma")
 library("tidyverse")
 library("sva")
 library("readr")
+library("DESeq2")
 
 #pipeline para analisis por separado
 #-normalizar
