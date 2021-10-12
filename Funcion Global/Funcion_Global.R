@@ -246,7 +246,7 @@ library("DESeq2")
       plotDensities(normalizedX, legend = "right", main = paste("FPKM", deparse(substitute(x)), sep = " "))
       
       madX <- apply(normalizedX, 1, mad)
-      pcaX <- prcomp(normalizedX[order(madX, decreasing = T),])
+      pcaX <- prcomp(normalizedX[order(madX, decreasing = T)[1:1000],])
       
       pcaMat <- as.data.frame(t(pcaX$rotation)) 
       pcaMatSan <- pcaMat %>% select(contains("S"))
@@ -286,7 +286,7 @@ library("DESeq2")
       plotDensities(normalizedCompare, legend = "right", main = paste("FPKM", deparse(substitute(x)), "&", deparse(substitute(...)), sep = " "))
       
       madCompare <- apply(normalizedCompare, 1, mad)
-      pcaCompare <- prcomp(normalizedCompare[order(madCompare, decreasing = T),])
+      pcaCompare <- prcomp(normalizedCompare[order(madCompare, decreasing = T)[1:1000],])
       
       pcaMatCom <- as.data.frame(t(pcaCompare$rotation))
       
